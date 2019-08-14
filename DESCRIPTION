@@ -1,5 +1,5 @@
 Package: sBayesRF
-Title: What the Package Does (One Line, Title Case)
+Title: Safe-Bayesian Random Forest. This package is an attempt to implement the Safe-Bayesian Random Forest described by Quadrianto and Ghahramani (2015).
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Eoghan",
@@ -14,6 +14,12 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 6.1.1
 LinkingTo: 
     Rcpp,
-    RcppArmadillo
+    RcppArmadillo,
+    dqrng,
+    BH,
+    sitmo
 Imports: 
-    Rcpp
+    Rcpp,
+    dqrng
+URL: https://github.com/EoghanONeill/sBayesRF
+BugReports: https://github.com/EoghanONeill/sBayesRF/issues
