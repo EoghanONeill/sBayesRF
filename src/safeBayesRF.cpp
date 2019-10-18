@@ -3766,9 +3766,9 @@ NumericMatrix sBayesRF_onefunc_parallel(double lambda, int num_trees,
           }
           pred_indices=pred_indices.elem(temp_pred_indices);
 
-          if(pred_indices.size()==0){
-            continue;
-          }
+          // if(pred_indices.size()==0){
+          //   continue;
+          // }
 
         }
         //Rcout << "Line 199. i = " << i <<  ".\n";
@@ -4028,9 +4028,9 @@ NumericMatrix sBayesRF_onefunc_parallel(double lambda, int num_trees,
           }
           pred_indices=pred_indices.elem(temp_pred_indices);
 
-          if(pred_indices.size()==0){
-            continue;
-          }
+          // if(pred_indices.size()==0){
+          //   continue;
+          // }
 
         }
         //Rcout << "Line 199. i = " << i <<  ".\n";
