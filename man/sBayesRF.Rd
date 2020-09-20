@@ -4,8 +4,17 @@
 \alias{sBayesRF}
 \title{Safe-Bayesian Random Forest. Initial test function.}
 \usage{
-sBayesRF(lambda, num_trees, seed, num_cats, y, original_datamat,
-  alpha_parameters, beta_par, test_datamat)
+sBayesRF(
+  lambda,
+  num_trees,
+  seed,
+  num_cats,
+  y,
+  original_datamat,
+  alpha_parameters,
+  beta_par,
+  test_datamat
+)
 }
 \description{
 Safe-Bayesian Random Forest. Initial test function.

@@ -98,3 +98,30 @@ sBayesRF_onefunc_parallel <- function(lambda, num_trees, seed, num_cats, y, orig
     .Call(`_sBayesRF_sBayesRF_onefunc_parallel`, lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores)
 }
 
+#' @title Parallel Safe-Bayesian Random Forest
+#'
+#' @description A parallelized implementation of the Safe-Bayesian Random Forest described by Quadrianto and Ghahramani (2015)
+#' @param lambda A real number between 0 and 1 that determines the splitting probability in the prior (which is used as the importance sampler of tree models). Quadrianto and Ghahramani (2015) recommend a value less than 0.5 .
+#' @param num_trees The number of trees to be sampled.
+#' @param seed The seed for random number generation.
+#' @param num_cats The number of possible values for the outcome variable.
+#' @param y The training data vector of outcomes. This must be a vector of integers between 1 and num_cats.
+#' @param original_datamat The original training data. Currently all variables must be continuous. The training data does not need to be transformed before being entered to this function.
+#' @param alpha_parameters Vector of prior parameters.
+#' @param beta_par The power to which the likelihood is to be raised. For BMA, set beta_par=1.
+#' @param original_datamat The original test data. This matrix must have the same number of columns (variables) as the training data. Currently all variables must be continuous. The test data does not need to be transformed before being entered to this function.
+#' @param ncores The number of cores to be used in parallelization.
+#' @return A matrix of probabilities with the number of rows equl to the number of test observations and the number of columns equal to the number of possible outcome categories.
+#' @export
+sBayesRF_more_priors_cpp <- function(lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores, nu, a, valid_trees, tree_prior, imp_sampler, alpha_BART, beta_BART, s_t_hyperprior, p_s_t, a_s_t, b_s_t, lambda_poisson, in_samp_preds, save_tree_tables) {
+    .Call(`_sBayesRF_sBayesRF_more_priors_cpp`, lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores, nu, a, valid_trees, tree_prior, imp_sampler, alpha_BART, beta_BART, s_t_hyperprior, p_s_t, a_s_t, b_s_t, lambda_poisson, in_samp_preds, save_tree_tables)
+}
+
+get_imp_vars <- function(split_vars, num_col, current_vars) {
+    .Call(`_sBayesRF_get_imp_vars`, split_vars, num_col, current_vars)
+}
+
+get_weighted_var_imp <- function(num_vars, BIC, sum_trees) {
+    .Call(`_sBayesRF_get_weighted_var_imp`, num_vars, BIC, sum_trees)
+}
+

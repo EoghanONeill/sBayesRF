@@ -4,8 +4,14 @@
 \alias{get_treelist}
 \title{For a set of trees, obtain tree matrices with predictions, and obtain model weights}
 \usage{
-get_treelist(original_y, num_cats, alpha_pars, beta_pow, originaldata,
-  treetable_list)
+get_treelist(
+  original_y,
+  num_cats,
+  alpha_pars,
+  beta_pow,
+  originaldata,
+  treetable_list
+)
 }
 \description{
 For a set of trees, obtain tree matrices with predictions, and obtain model weights
