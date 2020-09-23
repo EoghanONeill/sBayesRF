@@ -856,6 +856,37 @@ NumericMatrix get_test_prob_overall(NumericVector weights, int num_cats,
   return(wrap(pred_mat_overall));
 
 }
+
+//######################################################################################################################//
+
+// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::export]]
+double secondKindStirlingNumber(int n, int k) {
+  if(k>n)
+    throw std::range_error("Sterling number undefined for k>n");
+  if(k==0 && n==0)
+    return 1;
+  if (n == 0 || k == 0 || k > n)
+    return 0;
+  if (k == 1 || k == n)
+    return 1;
+
+  arma::mat sf=arma::zeros(n + 1,n + 1);
+  for (int i = 0; i < k+1; i++) {
+    sf(i,i) = 1;
+  }
+  for(int i=1; i< n+1 ; i++){
+    sf(i,1)=1;
+  }
+  for (int i = 3; i < n + 1; i++) {
+    for (int j = 2; j < k + 1; j++) {
+      sf(i,j) = j * sf(i - 1,j) + sf(i - 1,j - 1);
+    }
+  }
+  return sf(n,k);
+}
+
+
 //######################################################################################################################//
 
 // [[Rcpp::depends(RcppArmadillo)]]
@@ -4209,30 +4240,29 @@ return(wrap(pred_mat_overall));
 //' @export
 // [[Rcpp::export]]
 List sBayesRF_more_priors_cpp(double lambda,
-                                   int num_trees,
-                                   int seed,
-                                   int num_cats,
-                                   NumericVector y,
-                                   NumericMatrix original_datamat,
-                                   NumericVector alpha_parameters,
-                                   double beta_par,
-                                   NumericMatrix test_datamat,
-                                   int ncores,
-                                   double nu,
-                                   double a,//double lambdaBART,
-                                   int valid_trees,
-                                   int tree_prior,
-                                   int imp_sampler,
-                                   double alpha_BART,
-                                   double beta_BART,
-                                   int s_t_hyperprior,
-                                   double p_s_t,
-                                   double a_s_t,
-                                   double b_s_t,
-                                   double lambda_poisson,//,//int fast_approx,double lower_prob,double upper_prob,double root_alg_precision
-                                  int in_samp_preds,
-                                  int save_tree_tables
-                                         ){
+                              int num_trees,
+                              int seed,
+                              int num_cats,
+                              NumericVector y,
+                              NumericMatrix original_datamat,
+                              NumericVector alpha_parameters,
+                              double beta_par,
+                              NumericMatrix test_datamat,
+                              int ncores,
+                              int valid_trees,
+                              int tree_prior,
+                              int imp_sampler,
+                              double alpha_BART,
+                              double beta_BART,
+                              int s_t_hyperprior,
+                              double p_s_t,
+                              double a_s_t,
+                              double b_s_t,
+                              double lambda_poisson,//,//int fast_approx,double lower_prob,double upper_prob,double root_alg_precision
+                              int in_samp_preds,
+                              int save_tree_tables,
+                              int find_power
+                                ){
 
   int num_split_vars= original_datamat.ncol();
   arma::mat data_arma= as<arma::mat>(original_datamat);
@@ -4240,7 +4270,7 @@ List sBayesRF_more_priors_cpp(double lambda,
   arma::vec orig_y_arma= as<arma::vec>(y);
   arma::vec alpha_pars_arma= as<arma::vec>(alpha_parameters);
 
-  //int num_obs = data_arma.n_rows;
+  int num_obs = data_arma.n_rows;
   //int num_test_obs = testdata_arma.n_rows;
 
   int is_test_data = 0 ;
@@ -4442,8 +4472,8 @@ List sBayesRF_more_priors_cpp(double lambda,
 
   arma::vec overall_liks(num_trees);
 
-  Rcout << "Line 4445 . \n";
-  Rcout << "ncores = " << ncores << " . \n";
+  //Rcout << "Line 4445 . \n";
+  //Rcout << "ncores = " << ncores << " . \n";
 
   //overall_treetables[i]= wrap(tree_table1);
   //double templik = as<double>(treepred_output[1]);
@@ -4462,6 +4492,9 @@ List sBayesRF_more_priors_cpp(double lambda,
     //and use lrng and the following two lines
     //dqrng::xoshiro256plus lrng(rng);      // make thread local copy of rng
     //lrng.jump(omp_get_thread_num() + 1);  // advance rng by 1 ... nthreads jumps
+
+
+    double sum_prior_over_samp_prob = 1;
 
 
     //NumericVector treenodes_bin(0);
@@ -4860,7 +4893,7 @@ List sBayesRF_more_priors_cpp(double lambda,
 
 
     //Rcout << "Line 4081 .\n";
-    Rcout << "Line 4861 . \n";
+    //Rcout << "Line 4861 . \n";
 
 
     //CODE FOR ADJUSTING SPLITTING POINTS SO THAT THE TREES ARE VALID
@@ -4935,7 +4968,7 @@ List sBayesRF_more_priors_cpp(double lambda,
 
 
 
-    Rcout << "Line 4935 . \n";
+    //Rcout << "Line 4935 . \n";
 
     //Rcout << "Line 4161 .\n";
 
@@ -4975,7 +5008,6 @@ List sBayesRF_more_priors_cpp(double lambda,
     //Rcout << "split_point_vec_arma = " << split_point_vec_arma << " . \n";
 
     //Rcout << "treenodes_bin_arma = " << treenodes_bin_arma << " . \n";
-
 
     //Rcout << "Line 1054. \n";
 
@@ -5024,11 +5056,554 @@ List sBayesRF_more_priors_cpp(double lambda,
 
       }
     }//
-    //Rcout << "Line 1097. j = " << j << ". \n";
+
+    //Rcout << "Line 5026. j = " << j << ". \n";
 
 
 
-    Rcout << "Line 5027 . \n";
+    if(imp_sampler!=tree_prior){//check if importance sampler is not equal to the prior
+
+    //get tree prior over impportance sampler probability
+    double tree_prior_over_samp_prob=1;
+    if(imp_sampler==1){   //If sample from BART prior
+      if(tree_prior==1){  //If tree prior is BART prior
+        /////////////////////////////////////////////////////////////////////////////////////////
+        throw std::range_error("The code should not calculate the ratio of probabilities if sampler equals prior");
+        /////////////////////////////////////////////////////////////////////////////////////////
+      }else{// not BART prior (and sampler is BART)
+        if(tree_prior==2){  //If tree prior is spike-and-tree prior (and sampler is BART)
+          //throw std::range_error("code not yet written for spike and tree prior");
+          /////////////////////////////////////////////////////////////////////////////////////////
+
+
+          //arma::uvec internal_nodes_prop=find_internal_nodes(tree_table);
+          //arma::mat tree_table2(tree_table.begin(),tree_table.nrow(),tree_table.ncol(),false);
+          //arma::mat arma_tree(treetable.begin(),treetable.nrow(), treetable.ncol(), false);
+          //arma::vec colmat=arma_tree.col(4);
+          //arma::uvec internal_nodes_prop=arma::find(treenodes_bin_arma==1);
+          //internal_nodes_prop=internal_nodes_prop+1;
+
+          //double k_temp=internal_nodes_prop.size()+1;
+          //arma::mat split_var_rows=tree_table2.rows
+
+          //split_var_vec_arma(arma::find(treenodes_bin_arma==1));
+
+
+          arma::vec split_var_vectemp=split_var_vec_arma(arma::find(treenodes_bin_arma==1));
+          double k_temp=split_var_vectemp.size()+1;
+          arma::vec uniquesplitvars=arma::unique(split_var_vectemp);
+          double q_temp=uniquesplitvars.n_elem;
+
+          //FIRST CALCULATE THE log of denom and right_truncatin
+          //Then take the exponential
+          //then take the difference
+          double denom=1;
+          for(int i=0; i<q_temp+1;i++){
+            //denom= denom-(pow(lambda_poisson,double(i))*exp(-lambda_poisson)/double(tgamma(i+1)));
+            denom = denom-exp(i*log(lambda_poisson)-lambda_poisson-std::lgamma(double(i+1)));
+          }
+          double right_truncation=1;
+          for(int i=0; i<num_obs+1;i++){
+            //right_truncation= right_truncation-(pow(lambda_poisson,double(i))*std::exp(-lambda_poisson)/double(tgamma(i+1)));
+            right_truncation= right_truncation-exp(i*log(lambda_poisson)-lambda_poisson-std::lgamma(double(i+1)));
+          }
+          //Rcout << " right_truncation= " << right_truncation << ".\n";
+          denom=denom-right_truncation;
+
+
+          double propsplit;
+
+          if(q_temp==0){
+            if(s_t_hyperprior==1){
+              propsplit=//(1/double(num_vars+1))*
+                exp(std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                q_temp*log(p_s_t)+(num_vars-q_temp)*log(1-(p_s_t))+
+                k_temp*log(lambda_poisson)-
+                lambda_poisson-std::lgamma(k_temp+1)-denom)  ;
+              //Rcout << " propsplit= " << propsplit << ".\n";
+              // tree_prior_over_samp_prob=  propsplit/
+              //   BART_prior*
+              //     pow(1/num_vars,arma::sum(treenodes_bin_arma));
+            }else{
+              propsplit=//(1/double(num_vars+1))*
+                exp(std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                std::lgamma(q_temp+a_s_t)+std::lgamma(num_vars-q_temp+b_s_t)-std::lgamma(num_vars+a_s_t+b_s_t)+
+                k_temp*log(lambda_poisson)-
+                lambda_poisson-std::lgamma(k_temp+1)-denom)  ;
+              //Rcout << " propsplit= " << propsplit << ".\n";
+              // tree_prior_over_samp_prob=  propsplit/
+              //   BART_prior*
+              //     pow(1/num_vars,arma::sum(treenodes_bin_arma));
+
+            }
+          }else{
+            if(s_t_hyperprior==1){
+              propsplit=//(1/double(num_vars+1))*
+                exp(  std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                std::lgamma(q_temp+a_s_t)+std::lgamma(num_vars-q_temp+b_s_t)-std::lgamma(num_vars+a_s_t+b_s_t)+
+                k_temp*log(lambda_poisson)-
+                lambda_poisson-std::lgamma(k_temp+1)-denom  -
+                (std::lgamma(2*(k_temp-1)+1)-std::lgamma(k_temp+1)
+                   -std::lgamma(k_temp)+std::lgamma(q_temp+1)
+                   +std::log(secondKindStirlingNumber(k_temp-1,q_temp))
+                   +std::lgamma(num_obs)
+                   -std::lgamma(k_temp)
+                   -std::lgamma(num_obs-k_temp) ));
+
+                   //(std::lgamma(num_obs)+(k_temp-1-q_temp)*log(q_temp)+
+                   //std::lgamma(q_temp+1)-(std::lgamma(num_obs-k_temp+1))));
+                   //Rcout << " propsplit= " << propsplit << ".\n";
+                   // tree_prior_over_samp_prob=  propsplit/
+                   //   BART_prior*
+                   //     pow(1/num_vars,arma::sum(treenodes_bin_arma));
+            }else{
+              propsplit=//(1/double(num_vars+1))*
+                exp(  std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                q_temp*log(p_s_t)+(num_vars-q_temp)*log(1-(p_s_t))+
+                k_temp*log(lambda_poisson)-
+                lambda_poisson-std::lgamma(k_temp+1)-denom  -
+                (std::lgamma(2*(k_temp-1)+1)-std::lgamma(k_temp+1)
+                   -std::lgamma(k_temp)+std::lgamma(q_temp+1)
+                   +std::log(secondKindStirlingNumber(k_temp-1,q_temp))
+                   +std::lgamma(num_obs)
+                   -std::lgamma(k_temp)
+                   -std::lgamma(num_obs-k_temp) ));
+                   //Rcout << " propsplit= " << propsplit << ".\n";
+
+                   // tree_prior_over_samp_prob=  propsplit/
+                   //   BART_prior*
+                   //     pow(1/num_vars,arma::sum(treenodes_bin_arma));
+            }
+          }
+
+          tree_prior_over_samp_prob=propsplit;
+          //first get BART prior for tree structure
+          double depth1=0;
+          int prev_node=0; //1 if previous node splits, zero otherwise
+          //double BART_prior=1;
+          for(unsigned int i_2=0; i_2<treenodes_bin.size();i_2++){
+            if(treenodes_bin[i_2]==1){
+              tree_prior_over_samp_prob=tree_prior_over_samp_prob/((alpha_BART*pow(double(depth1+1),-beta_BART)));
+              depth1=depth1+1; //after a split, the depth will increase by 1
+              prev_node=1;
+            }else{
+              tree_prior_over_samp_prob=tree_prior_over_samp_prob/((1-alpha_BART*pow(double(depth1+1),-beta_BART)));
+              if(prev_node==1){//zero following a 1, therefore at same depth.
+                //Don't change depth. Do nothing
+              }else{ //zero following a zero, therefore the depth will decrease by 1
+                depth1=depth1-1;
+              }
+              prev_node=0;
+
+            }//close (zero node) else stattement
+
+          }//end for loop over i_2
+
+
+
+
+          /////////////////////////////////////////////////////////////////////////////////////////
+        }else{ //prior is Q+H  //(sampler is BART)
+          /////////////////////////////////////////////////////////////////////////////////////////
+          double depth1=0;
+          int prev_node=0; //1 if previous node splits, zero otherwise
+          for(unsigned int i_2=0; i_2<treenodes_bin.size();i_2++){
+            if(treenodes_bin[i_2]==1){
+              tree_prior_over_samp_prob=tree_prior_over_samp_prob*(lambda/(alpha_BART*pow(double(depth1+1),-beta_BART)));
+              depth1=depth1+1; //after a split, the depth will increase by 1
+              prev_node=1;
+            }else{
+              tree_prior_over_samp_prob=tree_prior_over_samp_prob*((1-lambda)/(1-alpha_BART*pow(double(depth1+1),-beta_BART)));
+              if(prev_node==1){//zero following a 1, therefore at same depth.
+                //Don't change depth. Do nothing
+              }else{ //zero following a zero, therefore the depth will decrease by 1
+                depth1=depth1-1;
+              }
+              prev_node=0;
+
+            }
+          }
+          /////////////////////////////////////////////////////////////////////////////////////////
+        }//close Q+H prior (with BART sampler)
+      }//close not BART prior (with BART sampler)
+    }else{// if not sampling from BART sampler
+      if(imp_sampler==2){//If sample from spike and tree prior
+        //throw std::range_error("code not yet written for sampling from spike and tree prior");
+
+        if(tree_prior==1){//prior is BART (sampler is spike and tree)
+          /////////////////////////////////////////////////////////////////////////////////////////
+          //first get BART prior for tree structure
+          double depth1=0;
+          int prev_node=0; //1 if previous node splits, zero otherwise
+          double BART_prior=1;
+          for(unsigned int i_2=0; i_2<treenodes_bin.size();i_2++){
+            if(treenodes_bin[i_2]==1){
+              BART_prior=BART_prior*((alpha_BART*pow(double(depth1+1),-beta_BART)));
+              depth1=depth1+1; //after a split, the depth will increase by 1
+              prev_node=1;
+            }else{
+              BART_prior=BART_prior*((1-alpha_BART*pow(double(depth1+1),-beta_BART)));
+              if(prev_node==1){//zero following a 1, therefore at same depth.
+                //Don't change depth. Do nothing
+              }else{ //zero following a zero, therefore the depth will decrease by 1
+                depth1=depth1-1;
+              }
+              prev_node=0;
+
+            }//close (zero node) else stattement
+
+          }//end for loop over i_2
+
+          arma::vec split_var_vectemp=split_var_vec_arma(arma::find(treenodes_bin_arma==1));
+          double k_temp=split_var_vectemp.size()+1;
+          arma::vec uniquesplitvars=arma::unique(split_var_vectemp);
+          double q_temp=uniquesplitvars.n_elem;
+
+          //FIRST CALCULATE THE log of denom and right_truncatin
+          //Then take the exponential
+          //then take the difference
+          double denom=1;
+          for(int i=0; i<q_temp+1;i++){
+            //denom= denom-(pow(lambda_poisson,double(i))*exp(-lambda_poisson)/double(tgamma(i+1)));
+            denom = denom-exp(i*log(lambda_poisson)-lambda_poisson-std::lgamma(double(i+1)));
+          }
+          double right_truncation=1;
+          for(int i=0; i<num_obs+1;i++){
+            //right_truncation= right_truncation-(pow(lambda_poisson,double(i))*std::exp(-lambda_poisson)/double(tgamma(i+1)));
+            right_truncation= right_truncation-exp(i*log(lambda_poisson)-lambda_poisson-std::lgamma(double(i+1)));
+          }
+          //Rcout << " right_truncation= " << right_truncation << ".\n";
+          denom=denom-right_truncation;
+
+          if(q_temp==0){
+            if(s_t_hyperprior==1){
+              double propsplit=//(1/double(num_vars+1))*
+                exp(std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                q_temp*log(p_s_t)+(num_vars-q_temp)*log(1-(p_s_t))+
+                k_temp*log(lambda_poisson)-
+                lambda_poisson-std::lgamma(k_temp+1)-denom)  ;
+              //Rcout << " propsplit= " << propsplit << ".\n";
+              tree_prior_over_samp_prob= BART_prior*
+                pow(1/num_vars,arma::sum(treenodes_bin_arma))/propsplit;
+            }else{
+              double propsplit=//(1/double(num_vars+1))*
+                exp(std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                std::lgamma(q_temp+a_s_t)+std::lgamma(num_vars-q_temp+b_s_t)-std::lgamma(num_vars+a_s_t+b_s_t)+
+                k_temp*log(lambda_poisson)-
+                lambda_poisson-std::lgamma(k_temp+1)-denom)  ;
+              //Rcout << " propsplit= " << propsplit << ".\n";
+              tree_prior_over_samp_prob=  BART_prior*
+                pow(1/num_vars,arma::sum(treenodes_bin_arma))/propsplit;
+
+            }
+          }else{
+            if(s_t_hyperprior==1){
+              double propsplit=//(1/double(num_vars+1))*
+                exp(  std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                std::lgamma(q_temp+a_s_t)+std::lgamma(num_vars-q_temp+b_s_t)-std::lgamma(num_vars+a_s_t+b_s_t)+
+                k_temp*log(lambda_poisson)-
+                lambda_poisson-std::lgamma(k_temp+1)-denom  -
+                (std::lgamma(2*(k_temp-1)+1)-std::lgamma(k_temp+1)
+                   -std::lgamma(k_temp)+std::lgamma(q_temp+1)
+                   +std::log(secondKindStirlingNumber(k_temp-1,q_temp))
+                   +std::lgamma(num_obs)
+                   -std::lgamma(k_temp)
+                   -std::lgamma(num_obs-k_temp) ));
+                   //Rcout << " propsplit= " << propsplit << ".\n";
+                   tree_prior_over_samp_prob=  BART_prior*
+                   pow(1/num_vars,arma::sum(treenodes_bin_arma))/propsplit;
+            }else{
+              double propsplit=//(1/double(num_vars+1))*
+                exp(  std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                q_temp*log(p_s_t)+(num_vars-q_temp)*log(1-(p_s_t))+
+                k_temp*log(lambda_poisson)-
+                lambda_poisson-std::lgamma(k_temp+1)-denom  -
+                (std::lgamma(2*(k_temp-1)+1)-std::lgamma(k_temp+1)
+                   -std::lgamma(k_temp)+std::lgamma(q_temp+1)
+                   +std::log(secondKindStirlingNumber(k_temp-1,q_temp))
+                   +std::lgamma(num_obs)
+                   -std::lgamma(k_temp)
+                   -std::lgamma(num_obs-k_temp) ));
+                   //Rcout << " propsplit= " << propsplit << ".\n";
+
+                   tree_prior_over_samp_prob=  BART_prior*
+                   pow(1/num_vars,arma::sum(treenodes_bin_arma))/propsplit;
+            }
+          }
+          /////////////////////////////////////////////////////////////////////////////////////////
+        }else{
+          if(tree_prior==2){//prior is spike and tree, sampler is spike and tree
+            /////////////////////////////////////////////////////////////////////////////////////////
+            throw std::range_error("The code should not calculate the ratio of probabilities if sampler equals prior");
+            /////////////////////////////////////////////////////////////////////////////////////////
+          }else{//prior is Q+H, sampler is spike and tree
+            /////////////////////////////////////////////////////////////////////////////////////////
+            arma::vec split_var_vectemp=split_var_vec_arma(arma::find(treenodes_bin_arma==1));
+            double k_temp=split_var_vectemp.size()+1;
+            arma::vec uniquesplitvars=arma::unique(split_var_vectemp);
+            double q_temp=uniquesplitvars.n_elem;
+
+            //FIRST CALCULATE THE log of denom and right_truncatin
+            //Then take the exponential
+            //then take the difference
+
+            double denom=1;
+            for(int i=0; i<q_temp+1;i++){
+              //denom= denom-(pow(lambda_poisson,double(i))*exp(-lambda_poisson)/double(tgamma(i+1)));
+              denom = denom-exp(i*log(lambda_poisson)-lambda_poisson-std::lgamma(double(i+1)));
+            }
+            double right_truncation=1;
+            for(int i=0; i<num_obs+1;i++){
+              //right_truncation= right_truncation-(pow(lambda_poisson,double(i))*std::exp(-lambda_poisson)/double(tgamma(i+1)));
+              right_truncation= right_truncation-exp(i*log(lambda_poisson)-lambda_poisson-std::lgamma(double(i+1)));
+            }
+            //Rcout << " right_truncation= " << right_truncation << ".\n";
+            denom=denom-right_truncation;
+
+            if(q_temp==0){
+              if(s_t_hyperprior==1){
+                double propsplit=//(1/double(num_vars+1))*
+                  exp(std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                  q_temp*log(p_s_t)+(num_vars-q_temp)*log(1-(p_s_t))+
+                  k_temp*log(lambda_poisson)-
+                  lambda_poisson-std::lgamma(k_temp+1)-denom)  ;
+                //Rcout << " propsplit= " << propsplit << ".\n";
+                tree_prior_over_samp_prob=  pow(lambda,arma::sum(treenodes_bin_arma))*
+                  pow(1-lambda,treenodes_bin_arma.size()-arma::sum(treenodes_bin_arma))*
+                  pow(1/num_vars,arma::sum(treenodes_bin_arma))/propsplit;
+
+              }else{
+                double propsplit=//(1/double(num_vars+1))*
+                  exp(std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                  std::lgamma(q_temp+a_s_t)+std::lgamma(num_vars-q_temp+b_s_t)-std::lgamma(num_vars+a_s_t+b_s_t)+
+                  k_temp*log(lambda_poisson)-
+                  lambda_poisson-std::lgamma(k_temp+1)-denom)  ;
+                //Rcout << " propsplit= " << propsplit << ".\n";
+                tree_prior_over_samp_prob=  pow(lambda,arma::sum(treenodes_bin_arma))*
+                  pow(1-lambda,treenodes_bin_arma.size()-arma::sum(treenodes_bin_arma))*
+                  pow(1/num_vars,arma::sum(treenodes_bin_arma))/propsplit;
+
+              }
+
+            }else{
+              if(s_t_hyperprior==1){
+                double propsplit=//(1/double(num_vars+1))*
+                  exp(  std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                  std::lgamma(q_temp+a_s_t)+std::lgamma(num_vars-q_temp+b_s_t)-std::lgamma(num_vars+a_s_t+b_s_t)+
+                  k_temp*log(lambda_poisson)-
+                  lambda_poisson-std::lgamma(k_temp+1)-denom  -
+                  (std::lgamma(2*(k_temp-1)+1)-std::lgamma(k_temp+1)
+                     -std::lgamma(k_temp)+std::lgamma(q_temp+1)
+                     +std::log(secondKindStirlingNumber(k_temp-1,q_temp))
+                     +std::lgamma(num_obs)
+                     -std::lgamma(k_temp)
+                     -std::lgamma(num_obs-k_temp) ));
+                     //Rcout << " propsplit= " << propsplit << ".\n";
+                     tree_prior_over_samp_prob=  pow(lambda,arma::sum(treenodes_bin_arma))*
+                     pow(1-lambda,treenodes_bin_arma.size()-arma::sum(treenodes_bin_arma))*
+                     pow(1/num_vars,arma::sum(treenodes_bin_arma))/propsplit;
+
+              }else{
+                double propsplit=//(1/double(num_vars+1))*
+                  exp(  std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                  q_temp*log(p_s_t)+(num_vars-q_temp)*log(1-(p_s_t))+
+                  k_temp*log(lambda_poisson)-
+                  lambda_poisson-std::lgamma(k_temp+1)-denom  -
+                  (std::lgamma(2*(k_temp-1)+1)-std::lgamma(k_temp+1)
+                     -std::lgamma(k_temp)+std::lgamma(q_temp+1)
+                     +std::log(secondKindStirlingNumber(k_temp-1,q_temp))
+                     +std::lgamma(num_obs)
+                     -std::lgamma(k_temp)
+                     -std::lgamma(num_obs-k_temp) ));
+
+                     tree_prior_over_samp_prob=  pow(lambda,arma::sum(treenodes_bin_arma))*
+                     pow(1-lambda,treenodes_bin_arma.size()-arma::sum(treenodes_bin_arma))*
+                     pow(1/num_vars,arma::sum(treenodes_bin_arma))/propsplit;
+
+              }
+            }
+            /////////////////////////////////////////////////////////////////////////////////////////
+          }//finish if sampler is spike tree and prior is Q+H
+        }//finish all possibiilities for spike and tree sampler
+
+      }else{//otherwise sampling from Quadrianto and Ghahramani prior
+        if(tree_prior==1){  //If tree prior is BART prior (and sampler is Q+H)
+          /////////////////////////////////////////////////////////////////////////////////////////
+          double depth1=0;
+          int prev_node=0; //1 if previous node splits, zero otherwise
+          for(unsigned int i_2=0; i_2<treenodes_bin.size();i_2++){
+            if(treenodes_bin[i_2]==1){
+              tree_prior_over_samp_prob=tree_prior_over_samp_prob*((alpha_BART*pow(double(depth1+1),-beta_BART))/lambda);
+              depth1=depth1+1; //after a split, the depth will increase by 1
+              prev_node=1;
+            }else{
+              tree_prior_over_samp_prob=tree_prior_over_samp_prob*((1-alpha_BART*pow(double(depth1+1),-beta_BART))/(1-lambda));
+              if(prev_node==1){//zero following a 1, therefore at same depth.
+                //Don't change depth. Do nothing
+              }else{ //zero following a zero, therefore the depth will decrease by 1
+                depth1=depth1-1;
+              }
+              prev_node=0;
+
+            }//close (zero node) else stattement
+
+          }//end for loop over i_2
+          /////////////////////////////////////////////////////////////////////////////////////////
+        }else{
+          if(tree_prior==2){  //If tree prior is spike-and-tree prior (and sampler is Q+H)
+            /////////////////////////////////////////////////////////////////////////////////////////
+            //throw std::range_error("code not yet written for spike and tree prior");
+
+            arma::vec split_var_vectemp=split_var_vec_arma(arma::find(treenodes_bin_arma==1));
+            double k_temp=split_var_vectemp.size()+1;
+            arma::vec uniquesplitvars=arma::unique(split_var_vectemp);
+            double q_temp=uniquesplitvars.n_elem;
+
+            //FIRST CALCULATE THE log of denom and right_truncatin
+            //Then take the exponential
+            //then take the difference
+
+            double denom=1;
+            for(int i=0; i<q_temp+1;i++){
+              //denom= denom-(pow(lambda_poisson,double(i))*exp(-lambda_poisson)/double(tgamma(i+1)));
+              denom = denom-exp(i*log(lambda_poisson)-lambda_poisson-std::lgamma(double(i+1)));
+            }
+            double right_truncation=1;
+            for(int i=0; i<num_obs+1;i++){
+              //right_truncation= right_truncation-(pow(lambda_poisson,double(i))*std::exp(-lambda_poisson)/double(tgamma(i+1)));
+              right_truncation= right_truncation-exp(i*log(lambda_poisson)-lambda_poisson-std::lgamma(double(i+1)));
+            }
+            //Rcout << " right_truncation= " << right_truncation << ".\n";
+            denom=denom-right_truncation;
+
+
+            double propsplit;
+
+            if(q_temp==0){
+              if(s_t_hyperprior==1){
+                propsplit=//(1/double(num_vars+1))*
+                  exp(std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                  q_temp*log(p_s_t)+(num_vars-q_temp)*log(1-(p_s_t))+
+                  k_temp*log(lambda_poisson)-
+                  lambda_poisson-std::lgamma(k_temp+1)-denom)  ;
+                //Rcout << " propsplit= " << propsplit << ".\n";
+                // tree_prior_over_samp_prob=  propsplit/
+                //   (pow(lambda,arma::sum(treenodes_bin_arma))*
+                //     pow(1-lambda,treenodes_bin_arma.size()-arma::sum(treenodes_bin_arma))*
+                //     pow(1/num_vars,arma::sum(treenodes_bin_arma)));
+
+              }else{
+                propsplit=//(1/double(num_vars+1))*
+                  exp(std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                  std::lgamma(q_temp+a_s_t)+std::lgamma(num_vars-q_temp+b_s_t)-std::lgamma(num_vars+a_s_t+b_s_t)+
+                  k_temp*log(lambda_poisson)-
+                  lambda_poisson-std::lgamma(k_temp+1)-denom)  ;
+                //Rcout << " propsplit= " << propsplit << ".\n";
+                // tree_prior_over_samp_prob=  propsplit/
+                //   (pow(lambda,arma::sum(treenodes_bin_arma))*
+                //     pow(1-lambda,treenodes_bin_arma.size()-arma::sum(treenodes_bin_arma))*
+                //     pow(1/num_vars,arma::sum(treenodes_bin_arma)));
+
+              }
+
+            }else{
+              if(s_t_hyperprior==1){
+                propsplit=//(1/double(num_vars+1))*
+                  exp(  std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                  std::lgamma(q_temp+a_s_t)+std::lgamma(num_vars-q_temp+b_s_t)-std::lgamma(num_vars+a_s_t+b_s_t)+
+                  k_temp*log(lambda_poisson)-
+                  lambda_poisson-std::lgamma(k_temp+1)-denom  -
+                  (std::lgamma(2*(k_temp-1)+1)-std::lgamma(k_temp+1)
+                     -std::lgamma(k_temp)+std::lgamma(q_temp+1)
+                     +std::log(secondKindStirlingNumber(k_temp-1,q_temp))
+                     +std::lgamma(num_obs)
+                     -std::lgamma(k_temp)
+                     -std::lgamma(num_obs-k_temp) ));
+                     //Rcout << " propsplit= " << propsplit << ".\n";
+                     // tree_prior_over_samp_prob=  propsplit/
+                     //   (pow(lambda,arma::sum(treenodes_bin_arma))*
+                     //     pow(1-lambda,treenodes_bin_arma.size()-arma::sum(treenodes_bin_arma))*
+                     //     pow(1/num_vars,arma::sum(treenodes_bin_arma)));
+
+              }else{
+                propsplit=//(1/double(num_vars+1))*
+                  exp(  std::lgamma(num_vars+1)-std::lgamma(q_temp+1)-std::lgamma(num_vars-q_temp+1)+
+                  q_temp*log(p_s_t)+(num_vars-q_temp)*log(1-(p_s_t))+
+                  k_temp*log(lambda_poisson)-
+                  lambda_poisson-std::lgamma(k_temp+1)-denom  -
+                  (std::lgamma(2*(k_temp-1)+1)-std::lgamma(k_temp+1)
+                     -std::lgamma(k_temp)+std::lgamma(q_temp+1)
+                     +std::log(secondKindStirlingNumber(k_temp-1,q_temp))
+                     +std::lgamma(num_obs)
+                     -std::lgamma(k_temp)
+                     -std::lgamma(num_obs-k_temp) ));
+
+                     // tree_prior_over_samp_prob=  propsplit/
+                     //   (pow(lambda,arma::sum(treenodes_bin_arma))*
+                     //     pow(1-lambda,treenodes_bin_arma.size()-arma::sum(treenodes_bin_arma))*
+                     //     pow(1/num_vars,arma::sum(treenodes_bin_arma)));
+
+              }
+            }
+            tree_prior_over_samp_prob=propsplit;
+
+            double depth1=0;
+            int prev_node=0; //1 if previous node splits, zero otherwise
+            for(unsigned int i_2=0; i_2<treenodes_bin.size();i_2++){
+              if(treenodes_bin[i_2]==1){
+                tree_prior_over_samp_prob=tree_prior_over_samp_prob/lambda;
+                depth1=depth1+1; //after a split, the depth will increase by 1
+                prev_node=1;
+              }else{
+                tree_prior_over_samp_prob=tree_prior_over_samp_prob/(1-lambda);
+                if(prev_node==1){//zero following a 1, therefore at same depth.
+                  //Don't change depth. Do nothing
+                }else{ //zero following a zero, therefore the depth will decrease by 1
+                  depth1=depth1-1;
+                }
+                prev_node=0;
+
+              }//close (zero node) else stattement
+
+            }//end for loop over i_2
+
+
+
+
+            /////////////////////////////////////////////////////////////////////////////////////////
+          }else{//if prior is Q+H (and sampler is Q+H)
+            /////////////////////////////////////////////////////////////////////////////////////////
+            throw std::range_error("The code should not calculate the ratio of probabilities if sampler equals prior");
+            /////////////////////////////////////////////////////////////////////////////////////////
+          }//close (not BART nor spike and tree prior) else statement
+        }// close (not BART prior) else statememt
+
+      }//close all Q+H sampler code (not sampling from BART or spike and tree)  else statement
+
+    }//close (not sampling from BART) else statement
+
+    sum_prior_over_samp_prob=sum_prior_over_samp_prob*tree_prior_over_samp_prob;
+    //end of getting tree prior over impportance sampler probability
+
+    // if(sum_prior_over_samp_prob==0){
+    //   Rcout << "Line 4266, j= " << j << ". \n";
+    //   Rcout << "Line 4267, q= " << q << ". \n";
+    //   Rcout << "sum_prior_over_samp_prob= " << sum_prior_over_samp_prob << ". \n";
+    //
+    // }else{
+    //   Rcout << "Line 4266, j= " << j << ". \n";
+    //   Rcout << "Line 4267, q= " << q << ". \n";
+    //   Rcout << "sum_prior_over_samp_prob= " << sum_prior_over_samp_prob << ". \n";
+    // }
+
+  }//end of tree prior and importance sampler calculations
+
+
+
+
+
+
+    //Rcout << "Line 5027 . \n";
 
 
     //List treepred_output = get_treepreds(original_y, num_cats, alpha_pars,
@@ -5044,46 +5619,33 @@ List sBayesRF_more_priors_cpp(double lambda,
 
 
 
-    double lik_prod=1;
-    double alph_prod=1;
+    //double lik_prod=1;
+    double log_lik_sum=0;
+
+    // double alph_prod=1;
+    // for(unsigned int i=0; i<alpha_pars_arma.n_elem;i++){
+    //   alph_prod=alph_prod*tgamma(alpha_pars_arma(i));
+    // }
+
+    double sum_lgam_alph=0;
     for(unsigned int i=0; i<alpha_pars_arma.n_elem;i++){
-      alph_prod=alph_prod*tgamma(alpha_pars_arma(i));
+      sum_lgam_alph=sum_lgam_alph+lgamma(alpha_pars_arma(i));
     }
-    double gam_alph_sum= tgamma(arma::sum(alpha_pars_arma));
-    double alph_term=gam_alph_sum/alph_prod;
 
-    //arma::mat arma_tree_table(treetable.begin(), treetable.nrow(), treetable.ncol(), false);
-    //arma::mat arma_orig_data(originaldata.begin(), originaldata.nrow(), originaldata.ncol(), false);
+    //double gam_alph_sum= tgamma(arma::sum(alpha_pars_arma));
+
+    double lgam_alph_sum= lgamma(arma::sum(alpha_pars_arma));
+
+    //double alph_term=gam_alph_sum/alph_prod;
+    double alph_term = lgam_alph_sum - sum_lgam_alph;
 
 
-    //arma::mat arma_tree(tree_data.begin(), tree_data.nrow(), tree_data.ncol(), false);
-    //arma::mat testd(test_data.begin(), test_data.nrow(), test_data.ncol(), false);
-
-    //NumericVector internal_nodes=find_internal_nodes_gs(tree_data);
-
-    //NumericVector terminal_nodes=find_term_nodes(treetable);
-
-    //arma::mat arma_tree(tree_table.begin(),tree_table.nrow(), tree_table.ncol(), false);
-
-    //arma::vec colmat=arma_tree.col(4);
-    //arma::uvec term_nodes=arma::find(colmat==-1);
-
-    //arma::vec colmat=arma_tree.col(2);
-    //arma::uvec term_nodes=arma::find(colmat==0);
 
     arma::vec colmat=tree_table1.col(4);
     arma::uvec term_nodes=arma::find(colmat==0);
 
     term_nodes=term_nodes+1;
 
-    //NumericVector terminal_nodes= wrap(term_nodes);
-
-    Rcout << "Line 5076 . \n";
-
-
-
-    //arma::vec arma_terminal_nodes=Rcpp::as<arma::vec>(terminal_nodes);
-    //NumericVector tree_predictions;
 
     //now for each internal node find the observations that belong to the terminal nodes
 
@@ -5098,7 +5660,10 @@ List sBayesRF_more_priors_cpp(double lambda,
       //term_obs[0]= temp_obsvec;
       double denom_temp= orig_y_arma.n_elem+arma::sum(alpha_pars_arma);
 
-      double num_prod=1;
+      //double num_prod=1;
+      //double num_sum=0;
+
+      double log_num_prod=0;
       double num_sum=0;
       //Rcout << "Line 129.\n";
 
@@ -5108,12 +5673,33 @@ List sBayesRF_more_priors_cpp(double lambda,
         double m_plus_alph=cat_inds.n_elem +alpha_pars_arma(k);
         tree_table1(0,5+k)= m_plus_alph/denom_temp ;
 
+        // Rcout << "k = " << k << ".\n";
+        // Rcout << "cat_inds.n_elem = " << cat_inds.n_elem << ".\n";
+        // Rcout << "alpha_pars_arma(k) = " << alpha_pars_arma(k) << ".\n";
+        // Rcout << "tgamma(m_plus_alph) = " << tgamma(m_plus_alph) << ".\n";
+        // Rcout << "lgamma(m_plus_alph) = " << lgamma(m_plus_alph) << ".\n";
+
         //for likelihood calculation
-        num_prod=num_prod*tgamma(m_plus_alph);
+        //num_prod=num_prod*tgamma(m_plus_alph);
+        log_num_prod=log_num_prod + lgamma(m_plus_alph);
+
         num_sum=num_sum +m_plus_alph ;
       }
 
-      lik_prod= alph_term*num_prod/tgamma(num_sum);
+      // Rcout << "Line 5693.\n";
+      // Rcout << "term_nodes.n_elem==1 . \n";
+
+      // Rcout << "log_lik_sum = " << log_lik_sum << ".\n";
+
+      //lik_prod= alph_term*num_prod/tgamma(num_sum);
+
+      log_lik_sum = alph_term + log_num_prod - lgamma(num_sum);
+
+      // Rcout << "log_lik_sum = " << log_lik_sum << ".\n";
+      // Rcout << "alph_term = " << alph_term << ".\n";
+      //Rcout << "num_prod = " << num_prod << ".\n";
+      // Rcout << "tgamma(num_sum) = " << tgamma(num_sum) << ".\n";
+      // Rcout << "lgamma(num_sum) = " << lgamma(num_sum) << ".\n";
 
     }
     else{
@@ -5131,26 +5717,9 @@ List sBayesRF_more_priors_cpp(double lambda,
         //Why not just initialize row_index to any number not equal to 1 (e.g. 0)?
         row_index=0;
 
-        // if(curr_term % 2==0){
-        //   //term node is left daughter
-        //   row_index=terminal_nodes[i];
-        // }else{
-        //   //term node is right daughter
-        //   row_index=terminal_nodes[i]-1;
-        // }
-
-
-
-
         //save the left and right node data into arma uvec
-
-        //CHECK THAT THIS REFERS TO THE CORRECT COLUMNS
-        //arma::vec left_nodes=arma_tree.col(0);
-        //arma::vec right_nodes=arma_tree.col(1);
-
         arma::vec left_nodes=tree_table1.col(0);
         arma::vec right_nodes=tree_table1.col(1);
-
 
 
         arma::mat node_split_mat;
@@ -5259,7 +5828,9 @@ List sBayesRF_more_priors_cpp(double lambda,
         //Rcout << "Line 207. denom_temp = " << denom_temp <<  ".\n";
         // << "Line 207. term_node = " << term_node <<  ".\n";
 
-        double num_prod=1;
+        //double num_prod=1;
+        double log_num_prod=0;
+
         double num_sum=0;
 
         for(int k=0; k<num_cats; k++){
@@ -5269,12 +5840,27 @@ List sBayesRF_more_priors_cpp(double lambda,
 
           tree_table1(curr_term-1,5+k)= m_plus_alph/denom_temp ;
 
-          num_prod=num_prod*tgamma(m_plus_alph);
+          //num_prod=num_prod*tgamma(m_plus_alph);
+
+          log_num_prod=log_num_prod + lgamma(m_plus_alph);
+
+
           num_sum=num_sum +m_plus_alph ;
         }
 
+        // Rcout << "Line 5858.\n";
+        // Rcout << " i = " << i <<  ".\n";
 
-        lik_prod= lik_prod*alph_term*num_prod/tgamma(num_sum);
+        // Rcout << "term_nodes.n_elem==  " << term_nodes.n_elem << ".\n";
+
+        // Rcout << "log_lik_sum = " << log_lik_sum << ".\n";
+
+        //lik_prod= lik_prod*alph_term*num_prod/tgamma(num_sum);
+
+        log_lik_sum = log_lik_sum + alph_term + log_num_prod - lgamma(num_sum);
+
+        // Rcout << "log_lik_sum = " << log_lik_sum << ".\n";
+
         //Rcout << "Line 297.\n";
 
 
@@ -5307,9 +5893,14 @@ List sBayesRF_more_priors_cpp(double lambda,
 
     //double templik = as<double>(treepred_output[1]);
 
-    double templik = pow(lik_prod,beta_par);
-    overall_liks(j)= templik;
+    //double templik = pow(lik_prod,beta_par);
+    //overall_liks(j)= templik;
 
+
+    //double templik = pow(lik_prod,beta_par);
+    overall_liks(j)= log_lik_sum;
+
+    // Rcout << "log_lik_sum = " << log_lik_sum << ".\n";
 
     //arma::mat arma_tree_table(treetable.begin(), treetable.nrow(), treetable.ncol(), false);
     //arma::mat arma_test_data(testdata.begin(), testdata.nrow(), testdata.ncol(), false);
@@ -5332,12 +5923,12 @@ List sBayesRF_more_priors_cpp(double lambda,
     arma::mat pred_mat_insamp(arma_orig_data.n_rows,num_cats);
     //arma::vec filled_in(testdata.nrow());
 
-    Rcout << "Line 5329 . \n";
+    //Rcout << "Line 5329 . \n";
 
 
     //create prediction matrix (or matrices)
     //either for test data, in-sample, or both
-    if(in_samp_preds==1 || is_test_data ==1){
+    if(in_samp_preds==1 || find_power==1 || is_test_data ==1){
 
       //List term_obs(terminal_nodes.size());
       if(term_nodes.size()==1){
@@ -5346,7 +5937,7 @@ List sBayesRF_more_priors_cpp(double lambda,
         if(is_test_data ==1){
           pred_mat=repmat(tree_table1(0,arma::span(5,5+num_cats-1)),testdata_arma.n_rows,1);
         }
-        if(in_samp_preds ==1){
+        if(in_samp_preds==1 || find_power==1){
           pred_mat_insamp=repmat(tree_table1(0,arma::span(5,5+num_cats-1)),arma_orig_data.n_rows,1);
         }
         //Rcout << "Line 424. \n";
@@ -5461,7 +6052,7 @@ List sBayesRF_more_priors_cpp(double lambda,
               arma::vec tempvec = arma_test_data.col(split);
               pred_indices = arma::find(tempvec <= temp_split);
             }
-            if(in_samp_preds ==1){
+            if(in_samp_preds==1 || find_power==1){
               arma::vec tempvecinsamp = arma_orig_data.col(split);
               pred_indices_insamp = arma::find(tempvecinsamp <= temp_split);
             }
@@ -5470,7 +6061,7 @@ List sBayesRF_more_priors_cpp(double lambda,
               arma::vec tempvec = arma_test_data.col(split);
               pred_indices = arma::find(tempvec > temp_split);
             }
-            if(in_samp_preds==1){
+            if(in_samp_preds==1 || find_power==1){
               arma::vec tempvecinsamp = arma_orig_data.col(split);
               pred_indices_insamp = arma::find(tempvecinsamp > temp_split);
             }
@@ -5487,9 +6078,9 @@ List sBayesRF_more_priors_cpp(double lambda,
             data_subset = arma_test_data.col(split);
             data_subset=data_subset.elem(pred_indices);
           }
-          if(in_samp_preds==1){
+          if(in_samp_preds==1 || find_power==1){
             data_subset_insamp = arma_orig_data.col(split);
-            data_subset_insamp=data_subset_insamp.elem(temp_pred_indices_insamp);
+            data_subset_insamp=data_subset_insamp.elem(pred_indices_insamp);
           }
 
 
@@ -5509,9 +6100,9 @@ List sBayesRF_more_priors_cpp(double lambda,
               data_subset = arma_test_data.col(curr_sv-1);
               data_subset = data_subset.elem(pred_indices);
             }
-            if(in_samp_preds==1){
+            if(in_samp_preds==1 || find_power==1){
               data_subset_insamp = arma_orig_data.col(curr_sv-1);
-              data_subset_insamp = data_subset_insamp.elem(temp_pred_indices_insamp);
+              data_subset_insamp = data_subset_insamp.elem(pred_indices_insamp);
             }
 
             if(node_split_mat(j,2)==0){
@@ -5519,7 +6110,7 @@ List sBayesRF_more_priors_cpp(double lambda,
               if(is_test_data==1){
                 temp_pred_indices=arma::find(data_subset <= split_p);
               }
-              if(in_samp_preds==1){
+              if(in_samp_preds==1 || find_power==1){
                 temp_pred_indices_insamp=arma::find(data_subset_insamp <= split_p);
               }
 
@@ -5528,7 +6119,7 @@ List sBayesRF_more_priors_cpp(double lambda,
               if(is_test_data==1){
                 temp_pred_indices=arma::find(data_subset > split_p);
               }
-              if(in_samp_preds==1){
+              if(in_samp_preds==1 || find_power==1){
                 temp_pred_indices_insamp=arma::find(data_subset_insamp > split_p);
               }
             }
@@ -5536,7 +6127,7 @@ List sBayesRF_more_priors_cpp(double lambda,
             if(is_test_data==1){
               pred_indices=pred_indices.elem(temp_pred_indices);
             }
-            if(in_samp_preds==1){
+            if(in_samp_preds==1 || find_power==1){
               pred_indices_insamp=pred_indices_insamp.elem(temp_pred_indices_insamp);
             }
             // if(pred_indices.size()==0){
@@ -5558,7 +6149,7 @@ List sBayesRF_more_priors_cpp(double lambda,
           if(is_test_data==1){
             pred_mat.each_row(pred_indices)=tree_table1(curr_term-1,arma::span(5,4+num_cats));
           }
-          if(in_samp_preds==1){
+          if(in_samp_preds==1 || find_power==1){
             pred_mat_insamp.each_row(pred_indices_insamp)=tree_table1(curr_term-1,arma::span(5,4+num_cats));
           }
 
@@ -5580,10 +6171,12 @@ List sBayesRF_more_priors_cpp(double lambda,
 
     //pred_mat_overall = pred_mat_overall + templik*pred_mat;
     if(is_test_data==1){
-      overall_probtables(j)= pred_mat*templik;
+      //overall_probtables(j)= pred_mat*templik;
+      overall_probtables(j)= pred_mat;
     }
-    if(in_samp_preds==1){
-      overall_probtables_insamp(j)= pred_mat_insamp*templik;
+    if(in_samp_preds==1 || find_power==1){
+      //overall_probtables_insamp(j)= pred_mat_insamp*templik;
+      overall_probtables_insamp(j)= pred_mat_insamp;
     }
 
     if(save_tree_tables==1){
@@ -5591,10 +6184,11 @@ List sBayesRF_more_priors_cpp(double lambda,
     }
 
     //overall_probtables(j)= pred_mat;
-    overall_liks(j) =templik;
+    //overall_liks(j) =lik_prod;
 
-    Rcout << "Line 5589 . \n";
-
+    //Rcout << "Line 5589 . \n";
+    // Rcout << "j == " << j << ".\n";
+    // Rcout << "overall_probtables_insamp(j) = \n" << overall_probtables_insamp(j) << ".\n";
 
 
   }//end of loop over all trees
@@ -5606,11 +6200,89 @@ List sBayesRF_more_priors_cpp(double lambda,
 
 /////////////////////////////////////////////////////////////////////////////////
 
-Rcout << "Line 5601 . \n";
+
+
+//double templik = pow(lik_prod,beta_par);
+
+//Rcout << "Line 5601 . \n";
+
+
+arma::vec accuracies(num_obs);
+//double chosen_beta=1;
+
+if(find_power==1){
+
+
+  // Rcout << "overall_liks == " << overall_liks << ".\n";
+  // Rcout << "overall_probtables_insamp.size() == " << overall_probtables_insamp.size() << ".\n";
+
+
+  for(int n_OC = 0; n_OC < num_obs; n_OC++){
+    arma::mat pred_mat_op_curve_insamp=arma::zeros<arma::mat>(arma_orig_data.n_rows,num_cats);
+
+    double beta_temp = double(n_OC+1)/num_obs;
+
+
+    arma::vec pow_tempvec = arma::exp(overall_liks*beta_temp);
+    // Rcout << "pow_tempvec == " << pow_tempvec << ".\n";
+
+    // for(unsigned int i=0; i<overall_probtables_insamp.size(); i++){
+    //   //double pow_temp = pow(overall_liks(i),beta_temp);
+    //   double pow_temp = std::exp(overall_liks(i)*beta_temp);
+    //
+    //   Rcout << "i == " << i << ".\n";
+    //
+    //   Rcout << "pow_temp == " << pow_temp << ".\n";
+    // }
+
+    //double sumlik_total_temp=0;
+
+    #pragma omp parallel
+    {
+      arma::mat result_private=arma::zeros<arma::mat>(arma_orig_data.n_rows,num_cats);
+      //double sumlik_total_private=0;
+    #pragma omp for nowait //fill result_private in parallel
+      for(unsigned int i=0; i<overall_probtables_insamp.size(); i++){
+        // double pow_temp = pow(overall_liks(i),beta_temp);
+        // result_private += overall_probtables_insamp(i)*pow_temp;
+        result_private += overall_probtables_insamp(i)*pow_tempvec(i);
+        //sumlik_total_private+=pow_temp;
+      }
+    #pragma omp critical
+      pred_mat_op_curve_insamp += result_private;
+      //sumlik_total_temp += sumlik_total_private;
+    }
+
+    //pred_mat_op_curve_insamp = pred_mat_op_curve_insamp*(1/sumlik_total_temp);
+    // Rcout << "pred_mat_op_curve_insamp == " << pred_mat_op_curve_insamp << ".\n";
+
+    arma::uvec pred_cats = arma::index_max(pred_mat_op_curve_insamp,1) ;
+
+    // Rcout << "n_OC == " << n_OC << ".\n";
+    // Rcout << "pred_cats = \n" << pred_cats << ".\n";
+
+    int num_equal= arma::sum(orig_y_arma-1 == pred_cats);
+    // Rcout << "num_equal = \n" << num_equal << ".\n";
+
+    accuracies(n_OC) = double(num_equal)/num_obs;
+
+  }
+
+  beta_par= double(arma::index_max(accuracies)+1)/num_obs ;
+
+}
+
+
 
 //for(unsigned int i=0; i<overall_probtables.n_elem;i++){
 //  pred_mat_overall = pred_mat_overall + overall_liks(i)*overall_probtables(i);
 //}
+
+arma::vec pow_vec = arma::exp(overall_liks*beta_par);
+// Rcout << "pow_vec == " << pow_vec << ".\n";
+
+
+
 
 if(is_test_data==1){
 
@@ -5618,40 +6290,75 @@ if(is_test_data==1){
   {
     arma::mat result_private=arma::zeros<arma::mat>(arma_test_data.n_rows,num_cats);
   #pragma omp for nowait //fill result_private in parallel
-    for(unsigned int i=0; i<overall_probtables.size(); i++) result_private += overall_probtables(i);
+    for(unsigned int i=0; i<overall_probtables.size(); i++){
+      //result_private += overall_probtables(i)*pow(overall_liks(i),beta_par);
+      result_private += overall_probtables(i)*pow_vec(i);
+    }
   #pragma omp critical
     pred_mat_overall += result_private;
   }
 
 }
 
+double sumlik_total= 1;
+
+///////
 if(in_samp_preds==1){
+  double sumlik_total_temp=0;
 
   #pragma omp parallel
   {
+    double sumlik_total_private=0;
     arma::mat result_private=arma::zeros<arma::mat>(arma_orig_data.n_rows,num_cats);
   #pragma omp for nowait //fill result_private in parallel
-    for(unsigned int i=0; i<overall_probtables_insamp.size(); i++) result_private += overall_probtables_insamp(i);
+    for(unsigned int i=0; i<overall_probtables_insamp.size(); i++){
+      //double pow_temp = pow(overall_liks(i),beta_par);
+      double pow_temp = pow_vec(i);
+      result_private += overall_probtables_insamp(i)*pow_temp;
+      sumlik_total_private += pow_temp;
+    }
   #pragma omp critical
     pred_mat_overall_insamp += result_private;
+    sumlik_total_temp += sumlik_total_private;
+
   }
 
-}
+sumlik_total = sumlik_total_temp;
+
+}else{
+  // double sumlik_total_temp=0;
+  //
+  // #pragma omp parallel
+  // {
+  //   double sumlik_total_private=0;
+  // #pragma omp for nowait //fill result_private in parallel
+  //   for(unsigned int i=0; i<overall_probtables_insamp.size(); i++){
+  //     sumlik_total_private +=  pow(overall_liks(i),beta_par);
+  //   }
+  // #pragma omp critical
+  //   sumlik_total_temp += sumlik_total_private;
+  //
+  // }
+  //
+  // sumlik_total = sumlik_total_temp;
+
+  sumlik_total = arma::sum(pow_vec);
+
+}//close calculation of insample predictions and normalizing constant (sum of weights)
+
+//////////
 
 
 
-
-
-double sumlik_total= arma::sum(overall_liks);
 
 if(is_test_data==1){
   pred_mat_overall=pred_mat_overall*(1/sumlik_total);
 }
-if(in_samp_preds==1){
+if(in_samp_preds==1 || find_power==1){
   pred_mat_overall_insamp=pred_mat_overall_insamp*(1/sumlik_total);
 }
 
-Rcout << "Line 5645 . \n";
+//Rcout << "Line 5645 . \n";
 
 //return(wrap(pred_mat_overall));
 
@@ -5686,95 +6393,762 @@ if(save_tree_tables==1){
 
 }
 
+if(find_power==1){
 
-if(is_test_data==0 && in_samp_preds==0){
-  if(save_tree_tables==1){
-    List ret(2);
-    //ret[0]= wrap(pred_mat_overall);
-    ret[0]= wrap(overall_liks/sumlik_total);
-    ret[1]= all_models_trees_list;
-    //ret[3]= wrap(orig_preds2);
-    return(ret);
-  }else{
-    List ret(1);
-    //ret[0]= wrap(pred_mat_overall);
-    ret[0]= wrap(overall_liks/sumlik_total);
-    //ret[2]= all_models_trees_list;
-    //ret[3]= wrap(orig_preds2);
-    return(ret);
+  if(is_test_data==0 && in_samp_preds==0){
+    if(save_tree_tables==1){
+      List ret(5);
+      //ret[0]= wrap(pred_mat_overall);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= all_models_trees_list;
+      ret[3]=wrap(accuracies);
+      ret[4]=beta_par;
+      //ret[3]= wrap(orig_preds2);
+      return(ret);
+    }else{
+      List ret(4);
+      //ret[0]= wrap(pred_mat_overall);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]=wrap(accuracies);
+      ret[3]=beta_par;
+      //ret[2]= all_models_trees_list;
+      //ret[3]= wrap(orig_preds2);
+      return(ret);
+    }
   }
-}
 
-if(is_test_data==1 && in_samp_preds==0){
-  arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
-  if(save_tree_tables==1){
-    List ret(4);
-    ret[0]= wrap(overall_liks/sumlik_total);
-    ret[1]= wrap(pred_mat_overall);
-    ret[2]= all_models_trees_list;
-    ret[3]= wrap(pred_cats);
+  if(is_test_data==1 && in_samp_preds==0){
+    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+    if(save_tree_tables==1){
+      List ret(7);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall);
+      ret[3]= all_models_trees_list;
+      ret[4]= wrap(pred_cats);
+      ret[5]= wrap(accuracies);
+      ret[6]= beta_par;
+      return(ret);
+    }else{
+      List ret(6);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall);
+      ret[3]= wrap(pred_cats);
+      ret[4]= wrap(accuracies);
+      ret[5]= beta_par;
+      //ret[2]= all_models_trees_list;
+      //ret[3]= wrap(orig_preds2);
 
-    return(ret);
-  }else{
-    List ret(3);
-    ret[0]= wrap(overall_liks/sumlik_total);
-    ret[1]= wrap(pred_mat_overall);
-    ret[2]= wrap(pred_cats);
-    //ret[2]= all_models_trees_list;
-    //ret[3]= wrap(orig_preds2);
-
-    return(ret);
+      return(ret);
+    }
   }
-}
 
-if(is_test_data==0 && in_samp_preds==1){
-  arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
-  if(save_tree_tables==1){
-    List ret(4);
-    ret[0]= wrap(overall_liks/sumlik_total);
-    ret[1]= wrap(pred_mat_overall_insamp);
-    ret[2]= all_models_trees_list;
-    ret[3]= wrap(pred_cats_insamp);
-
-    return(ret);
-  }else{
-    List ret(3);
-    ret[0]= wrap(overall_liks/sumlik_total);
-    ret[1]= wrap(pred_mat_overall_insamp);
-    //ret[2]= all_models_trees_list;
-    ret[2]= wrap(pred_cats_insamp);
-
-    return(ret);
+  if(is_test_data==0 && in_samp_preds==1){
+    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
+    if(save_tree_tables==1){
+      List ret(7);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall_insamp);
+      ret[3]= all_models_trees_list;
+      ret[4]= wrap(pred_cats_insamp);
+      ret[5]= wrap(accuracies);
+      ret[6]= beta_par;
+      return(ret);
+    }else{
+      List ret(6);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall_insamp);
+      //ret[2]= all_models_trees_list;
+      ret[3]= wrap(pred_cats_insamp);
+      ret[4]= wrap(accuracies);
+      ret[5]= beta_par;
+      return(ret);
+    }
   }
-}
-if(is_test_data==1 && in_samp_preds==1){
-  arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
-  arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
-  if(save_tree_tables==1){
-    List ret(6);
-    ret[0]= wrap(overall_liks/sumlik_total);
-    ret[1]= wrap(pred_mat_overall);
-    ret[2]= wrap(pred_mat_overall_insamp);
-    ret[3]= all_models_trees_list;
-    ret[4]= wrap(pred_cats);
-    ret[5]= wrap(pred_cats_insamp);
 
-    return(ret);
-  }else{
-    List ret(5);
-    ret[0]= wrap(overall_liks/sumlik_total);
-    ret[1]= wrap(pred_mat_overall);
-    ret[2]= wrap(pred_mat_overall_insamp);
-    //ret[3]= all_models_trees_list;
-    ret[3]= wrap(pred_cats);
-    ret[4]= wrap(pred_cats_insamp);
+  if(is_test_data==1 && in_samp_preds==1){
+    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
+    if(save_tree_tables==1){
+      List ret(9);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall);
+      ret[3]= wrap(pred_mat_overall_insamp);
+      ret[4]= all_models_trees_list;
+      ret[5]= wrap(pred_cats);
+      ret[6]= wrap(pred_cats_insamp);
+      ret[7]= wrap(accuracies);
+      ret[8]= beta_par;
+      return(ret);
+    }else{
+      List ret(8);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall);
+      ret[3]= wrap(pred_mat_overall_insamp);
+      //ret[3]= all_models_trees_list;
+      ret[4]= wrap(pred_cats);
+      ret[5]= wrap(pred_cats_insamp);
+      ret[6]= wrap(accuracies);
+      ret[7]= beta_par;
+      return(ret);
 
-    return(ret);
-
+    }
   }
-}
+
+}else{
+
+  if(is_test_data==0 && in_samp_preds==0){
+    if(save_tree_tables==1){
+      List ret(3);
+      //ret[0]= wrap(pred_mat_overall);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= all_models_trees_list;
+      //ret[3]= wrap(orig_preds2);
+      return(ret);
+    }else{
+      List ret(2);
+      //ret[0]= wrap(pred_mat_overall);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      //ret[2]= all_models_trees_list;
+      //ret[3]= wrap(orig_preds2);
+      return(ret);
+    }
+  }
+
+  if(is_test_data==1 && in_samp_preds==0){
+    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+    if(save_tree_tables==1){
+      List ret(5);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall);
+      ret[3]= all_models_trees_list;
+      ret[4]= wrap(pred_cats);
+
+      return(ret);
+    }else{
+      List ret(4);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall);
+      ret[3]= wrap(pred_cats);
+      //ret[2]= all_models_trees_list;
+      //ret[3]= wrap(orig_preds2);
+
+      return(ret);
+    }
+  }
+
+  if(is_test_data==0 && in_samp_preds==1){
+    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
+    if(save_tree_tables==1){
+      List ret(5);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall_insamp);
+      ret[3]= all_models_trees_list;
+      ret[4]= wrap(pred_cats_insamp);
+
+      return(ret);
+    }else{
+      List ret(4);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall_insamp);
+      //ret[2]= all_models_trees_list;
+      ret[3]= wrap(pred_cats_insamp);
+
+      return(ret);
+    }
+  }
+
+  if(is_test_data==1 && in_samp_preds==1){
+    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
+    if(save_tree_tables==1){
+      List ret(7);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall);
+      ret[3]= wrap(pred_mat_overall_insamp);
+      ret[4]= all_models_trees_list;
+      ret[5]= wrap(pred_cats);
+      ret[6]= wrap(pred_cats_insamp);
+
+      return(ret);
+    }else{
+      List ret(6);
+      //ret[0]= wrap(overall_liks/sumlik_total);
+      ret[0]= wrap(overall_liks);
+      ret[1]= wrap(pow_vec/sumlik_total);
+      ret[2]= wrap(pred_mat_overall);
+      ret[3]= wrap(pred_mat_overall_insamp);
+      //ret[3]= all_models_trees_list;
+      ret[4]= wrap(pred_cats);
+      ret[5]= wrap(pred_cats_insamp);
+
+      return(ret);
+
+    }
+  }
+}//end of else statement
+
 
 return 0;
 }
+
+
+//###########################################################################################################################//
+
+// [[Rcpp::plugins(openmp)]]
+// Protect against compilers without OpenMP
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+
+// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::export]]
+List pred_sBF(List tree_table_list,
+              NumericVector orig_weights,
+              NumericMatrix original_datamat,
+              NumericMatrix test_datamat,
+              NumericVector orig_logliks,
+              NumericVector y_original,
+              double beta_par,
+              int num_obs,
+              int num_test_obs,
+              int num_cats,
+              int find_power,
+              int ncores){
+
+
+  //int num_split_vars= original_datamat.ncol();
+  arma::mat data_arma= as<arma::mat>(original_datamat);
+  arma::mat testdata_arma= as<arma::mat>(test_datamat);
+  arma::vec orig_y_arma= as<arma::vec>(y_original);
+
+
+  int is_test_data = 0 ;
+
+
+  //NumericMatrix temptreetab = tree_table_list[1];
+  //int num_cats = temptreetab.ncol()-5;
+
+  if(testdata_arma.n_rows > 0){
+    is_test_data = 1;
+  }else{
+    throw std::range_error("test_datamat has zero rows. Require at least one test data observation");
+  }
+
+  int num_trees = tree_table_list.size();
+
+
+
+
+
+  //THIS CAN BE PARALLELIZED IF THERE ARE MANY VARIABLES
+  arma::mat arma_orig_data(data_arma.n_rows,data_arma.n_cols);
+  for(unsigned int k=0; k<data_arma.n_cols;k++){
+    arma::vec samp= data_arma.col(k);
+    arma::vec sv=arma::sort(samp);
+    //std::sort(sv.begin(), sv.end());
+    arma::uvec ord = arma::sort_index(samp);
+    double nobs = samp.n_elem;
+    arma::vec ans(nobs);
+    for (unsigned int i = 0, j = 0; i < nobs; ++i) {
+      int ind=ord(i);
+      double ssampi(samp[ind]);
+      while (sv(j) < ssampi && j < sv.size()) ++j;
+      ans(ind) = j;     // j is the 1-based index of the lower bound
+    }
+    arma_orig_data.col(k)=(ans+1)/nobs;
+  }
+
+
+
+
+
+  //THIS CAN BE PARALLELIZED IF THERE ARE MANY VARIABLES
+  arma::mat arma_test_data(testdata_arma.n_rows,testdata_arma.n_cols);
+
+  if(is_test_data==1){
+    for(unsigned int k=0; k<data_arma.n_cols;k++){
+      arma::vec ref= data_arma.col(k);
+      arma::vec samp= testdata_arma.col(k);
+
+      arma::vec sv=arma::sort(samp);
+      arma::vec sref=arma::sort(ref);
+
+      //std::sort(sv.begin(), sv.end());
+      arma::uvec ord = arma::sort_index(samp);
+      double nobs = samp.n_elem;
+      double nobsref = ref.n_elem;
+
+      arma::vec ans(nobs);
+      for (unsigned int i = 0, j = 0; i < nobs; ++i) {
+        int ind=ord(i);
+        double ssampi(samp[ind]);
+        if(j+1>sref.size()){
+        }else{
+          while (sref(j) < ssampi && j < sref.size()){
+            ++j;
+            if(j==sref.size()) break;
+          }
+        }
+        ans(ind) = j;     // j is the 1-based index of the lower bound
+      }
+
+      arma_test_data.col(k)=(ans+1)/nobsref;
+
+    }
+  }
+
+
+
+
+
+
+
+
+  arma::mat pred_mat_overall=arma::zeros<arma::mat>(arma_test_data.n_rows,num_cats);
+
+  arma::mat pred_mat_overall_insamp=arma::zeros<arma::mat>(data_arma.n_rows,num_cats);
+
+  //arma::field<arma::mat> overall_treetables(num_trees);
+  arma::field<arma::mat> overall_probtables(num_trees);
+  arma::field<arma::mat> overall_probtables_insamp(num_trees);
+
+  //arma::vec overall_liks(num_trees);
+
+  arma::vec overall_liks = as<arma::vec>(orig_logliks);
+
+  //convert list of tree tables (Rcpp objects) to a
+  //arma::field of tree tables (arma::matx instead of NumerixMatrix)
+
+  arma::field<arma::mat> modelsF(tree_table_list.size());
+
+  for(unsigned int i=0 ; i < tree_table_list.size() ; i++){
+
+    //Rcout << "Line 5663.\n";
+    arma::mat temp_tree_mat = Rcpp::as<arma::mat>(tree_table_list[i]);
+    modelsF(i)=temp_tree_mat;
+
+    //Rcout << "Line 5669.\n";
+  }
+
+
+
+
+#pragma omp parallel num_threads(ncores)
+{//start of pragma omp code
+  //dqrng::xoshiro256plus lgen(gen);      // make thread local copy of rng
+  //lgen.jump(omp_get_thread_num() + 1);  // advance rng by 1 ... ncores jumps
+
+#pragma omp for
+  for(int j=0; j<num_trees;j++){
+
+
+
+
+  ///////////////////////
+    arma::mat tree_table1 = modelsF(j);
+
+    arma::vec colmat=tree_table1.col(4);
+    arma::uvec term_nodes=arma::find(colmat==0);
+
+    term_nodes=term_nodes+1;
+
+
+
+  arma::mat pred_mat(testdata_arma.n_rows,num_cats);
+  arma::mat pred_mat_insamp(arma_orig_data.n_rows,num_cats);
+  //arma::vec filled_in(testdata.nrow());
+
+  //Rcout << "Line 5329 . \n";
+
+
+  //create prediction matrix (or matrices)
+  //either for test data, in-sample, or both
+  if( find_power==1 || is_test_data ==1){
+
+    //List term_obs(terminal_nodes.size());
+    if(term_nodes.size()==1){
+      //Rcout << "Line 422. \n";
+
+      if(is_test_data ==1){
+        pred_mat=repmat(tree_table1(0,arma::span(5,5+num_cats-1)),testdata_arma.n_rows,1);
+      }
+      if(find_power==1){
+        pred_mat_insamp=repmat(tree_table1(0,arma::span(5,5+num_cats-1)),arma_orig_data.n_rows,1);
+      }
+      //Rcout << "Line 424. \n";
+
+
+    }
+    else{
+      for(unsigned int i=0;i<term_nodes.size();i++){
+        //arma::mat subdata=testd;
+        int curr_term=term_nodes(i);
+
+        int row_index;
+        int term_node=term_nodes(i);
+
+        //WHAT IS THE PURPOSE OF THIS IF-STATEMENT?
+        //Why should the ro index be different for a right daughter?
+        //Why not just initialize row_index to any number not equal to 1 (e.g. 0)?
+        row_index=0;
+
+
+        //save the left and right node data into arma uvec
+
+        //CHECK THAT THIS REFERS TO THE CORRECT COLUMNS
+        //arma::vec left_nodes=arma_tree.col(0);
+        //arma::vec right_nodes=arma_tree.col(1);
+
+        arma::vec left_nodes=tree_table1.col(0);
+        arma::vec right_nodes=tree_table1.col(1);
+
+
+
+        arma::mat node_split_mat;
+        node_split_mat.set_size(0,3);
+        //Rcout << "Line 124. i = " << i << " .\n";
+
+        while(row_index!=1){
+          //for each terminal node work backwards and see if the parent node was a left or right node
+          //append split info to a matrix
+          int rd=0;
+          arma::uvec parent_node=arma::find(left_nodes == term_node);
+
+          if(parent_node.size()==0){
+            parent_node=arma::find(right_nodes == term_node);
+            rd=1;
+          }
+
+          //want to cout parent node and append to node_split_mat
+
+          node_split_mat.insert_rows(0,1);
+
+          //CHECK THAT COLUMNS OF TREETABLE ARE CORRECT
+          //node_split_mat(0,0)=treetable(parent_node[0],2);
+          //node_split_mat(0,1)=treetable(parent_node[0],3);
+
+          //node_split_mat(0,0)=arma_tree_table(parent_node[0],3);
+          //node_split_mat(0,1)=arma_tree_table(parent_node[0],4);
+
+          node_split_mat(0,0)=tree_table1(parent_node(0),2);
+          node_split_mat(0,1)=tree_table1(parent_node(0),3);
+
+          node_split_mat(0,2)=rd;
+          row_index=parent_node(0)+1;
+          term_node=parent_node(0)+1;
+        }
+
+        //once we have the split info, loop through rows and find the subset indexes for that terminal node!
+        //then fill in the predicted value for that tree
+        //double prediction = tree_data(term_node,5);
+        arma::uvec pred_indices;
+        arma::uvec pred_indices_insamp;
+        int split= node_split_mat(0,0)-1;
+
+        //arma::vec tempvec = testd.col(split);
+
+        double temp_split = node_split_mat(0,1);
+
+        if(node_split_mat(0,2)==0){
+          if(is_test_data==1){
+            arma::vec tempvec = arma_test_data.col(split);
+            pred_indices = arma::find(tempvec <= temp_split);
+          }
+          if( find_power==1){
+            arma::vec tempvecinsamp = arma_orig_data.col(split);
+            pred_indices_insamp = arma::find(tempvecinsamp <= temp_split);
+          }
+        }else{
+          if(is_test_data==1){
+            arma::vec tempvec = arma_test_data.col(split);
+            pred_indices = arma::find(tempvec > temp_split);
+          }
+          if( find_power==1){
+            arma::vec tempvecinsamp = arma_orig_data.col(split);
+            pred_indices_insamp = arma::find(tempvecinsamp > temp_split);
+          }
+        }
+
+        arma::uvec temp_pred_indices;
+        arma::uvec temp_pred_indices_insamp;
+
+        //arma::vec data_subset = testd.col(split);
+        arma::vec data_subset ;
+        arma::vec data_subset_insamp ;
+
+        if(is_test_data==1){
+          data_subset = arma_test_data.col(split);
+          data_subset=data_subset.elem(pred_indices);
+        }
+        if( find_power==1){
+          data_subset_insamp = arma_orig_data.col(split);
+          data_subset_insamp=data_subset_insamp.elem(pred_indices_insamp);
+        }
+
+
+        //now loop through each row of node_split_mat
+        int n=node_split_mat.n_rows;
+        //Rcout << "Line 174. i = " << i << ". n = " << n << ".\n";
+        //Rcout << "Line 174. node_split_mat= " << node_split_mat << ". n = " << n << ".\n";
+
+
+        for(int j=1;j<n;j++){
+          int curr_sv=node_split_mat(j,0);
+          double split_p = node_split_mat(j,1);
+
+          //data_subset = testd.col(curr_sv-1);
+
+          if(is_test_data==1){
+            data_subset = arma_test_data.col(curr_sv-1);
+            data_subset = data_subset.elem(pred_indices);
+          }
+          if( find_power==1){
+            data_subset_insamp = arma_orig_data.col(curr_sv-1);
+            data_subset_insamp = data_subset_insamp.elem(pred_indices_insamp);
+          }
+
+          if(node_split_mat(j,2)==0){
+            //split is to the left
+            if(is_test_data==1){
+              temp_pred_indices=arma::find(data_subset <= split_p);
+            }
+            if( find_power==1){
+              temp_pred_indices_insamp=arma::find(data_subset_insamp <= split_p);
+            }
+
+          }else{
+            //split is to the right
+            if(is_test_data==1){
+              temp_pred_indices=arma::find(data_subset > split_p);
+            }
+            if( find_power==1){
+              temp_pred_indices_insamp=arma::find(data_subset_insamp > split_p);
+            }
+          }
+
+          if(is_test_data==1){
+            pred_indices=pred_indices.elem(temp_pred_indices);
+          }
+          if( find_power==1){
+            pred_indices_insamp=pred_indices_insamp.elem(temp_pred_indices_insamp);
+          }
+          // if(pred_indices.size()==0){
+          //   continue;
+          // }
+
+        }
+        //Rcout << "Line 199. i = " << i <<  ".\n";
+
+        //double nodemean=tree_data(terminal_nodes[i]-1,5);
+        //IntegerVector predind=as<IntegerVector>(wrap(pred_indices));
+        //predictions[predind]= nodemean;
+        //term_obs[i]=predind;
+
+        //Rcout << "Line 635. \n";
+        //Rcout << "pred_indices = " << pred_indices << ".\n";
+
+        //pred_mat.rows(pred_indices)=arma::repmat(arma_tree_table(curr_term-1,arma::span(5,5+num_cats-1)),pred_indices.n_elem,1);
+        if(is_test_data==1){
+          pred_mat.each_row(pred_indices)=tree_table1(curr_term-1,arma::span(5,4+num_cats));
+        }
+        if( find_power==1){
+          pred_mat_insamp.each_row(pred_indices_insamp)=tree_table1(curr_term-1,arma::span(5,4+num_cats));
+        }
+
+
+
+      }
+    }
+
+  }//close if in_samp_preds or is_test_data
+
+
+  if(is_test_data==1){
+    //overall_probtables(j)= pred_mat*templik;
+    overall_probtables(j)= pred_mat;
+  }
+
+  if(find_power==1){
+    //overall_probtables_insamp(j)= pred_mat_insamp*templik;
+    overall_probtables_insamp(j)= pred_mat_insamp;
+  }
+
+
+}//close big parallelized loop over trees
+}//end of prangma omp code
+
+
+
+
+
+arma::vec accuracies(num_obs);
+
+//double chosen_beta=1;
+
+if(find_power==1){
+
+
+  // Rcout << "overall_liks == " << overall_liks << ".\n";
+  // Rcout << "overall_probtables_insamp.size() == " << overall_probtables_insamp.size() << ".\n";
+
+
+  for(int n_OC = 0; n_OC < num_obs; n_OC++){
+    arma::mat pred_mat_op_curve_insamp=arma::zeros<arma::mat>(arma_orig_data.n_rows,num_cats);
+
+    double beta_temp = double(n_OC+1)/num_obs;
+
+
+    arma::vec pow_tempvec = arma::exp(overall_liks*beta_temp);
+    // Rcout << "pow_tempvec == " << pow_tempvec << ".\n";
+
+    // for(unsigned int i=0; i<overall_probtables_insamp.size(); i++){
+    //   //double pow_temp = pow(overall_liks(i),beta_temp);
+    //   double pow_temp = std::exp(overall_liks(i)*beta_temp);
+    //
+    //   Rcout << "i == " << i << ".\n";
+    //
+    //   Rcout << "pow_temp == " << pow_temp << ".\n";
+    // }
+
+    //double sumlik_total_temp=0;
+
+#pragma omp parallel
+{
+  arma::mat result_private=arma::zeros<arma::mat>(arma_orig_data.n_rows,num_cats);
+  //double sumlik_total_private=0;
+#pragma omp for nowait //fill result_private in parallel
+  for(unsigned int i=0; i<overall_probtables_insamp.size(); i++){
+    // double pow_temp = pow(overall_liks(i),beta_temp);
+    // result_private += overall_probtables_insamp(i)*pow_temp;
+    result_private += overall_probtables_insamp(i)*pow_tempvec(i);
+    //sumlik_total_private+=pow_temp;
+  }
+#pragma omp critical
+  pred_mat_op_curve_insamp += result_private;
+  //sumlik_total_temp += sumlik_total_private;
+}
+
+//pred_mat_op_curve_insamp = pred_mat_op_curve_insamp*(1/sumlik_total_temp);
+// Rcout << "pred_mat_op_curve_insamp == " << pred_mat_op_curve_insamp << ".\n";
+
+arma::uvec pred_cats = arma::index_max(pred_mat_op_curve_insamp,1) ;
+
+// Rcout << "n_OC == " << n_OC << ".\n";
+// Rcout << "pred_cats = \n" << pred_cats << ".\n";
+
+int num_equal= arma::sum(orig_y_arma-1 == pred_cats);
+// Rcout << "num_equal = \n" << num_equal << ".\n";
+
+accuracies(n_OC) = double(num_equal)/num_obs;
+
+  }
+
+  beta_par= double(arma::index_max(accuracies)+1)/num_obs ;
+
+}
+
+
+
+//for(unsigned int i=0; i<overall_probtables.n_elem;i++){
+//  pred_mat_overall = pred_mat_overall + overall_liks(i)*overall_probtables(i);
+//}
+
+arma::vec pow_vec = arma::exp(overall_liks*beta_par);
+// Rcout << "pow_vec == " << pow_vec << ".\n";
+
+
+
+
+if(is_test_data==1){
+
+#pragma omp parallel
+{
+  arma::mat result_private=arma::zeros<arma::mat>(arma_test_data.n_rows,num_cats);
+#pragma omp for nowait //fill result_private in parallel
+  for(unsigned int i=0; i<overall_probtables.size(); i++){
+    //result_private += overall_probtables(i)*pow(overall_liks(i),beta_par);
+    result_private += overall_probtables(i)*pow_vec(i);
+  }
+#pragma omp critical
+  pred_mat_overall += result_private;
+}
+
+}
+
+
+double sumlik_total = arma::sum(pow_vec);
+
+
+if(is_test_data==1){
+  pred_mat_overall=pred_mat_overall*(1/sumlik_total);
+}
+
+
+
+
+if(find_power==1){
+  arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+
+  List ret(6);
+  //ret[0]= wrap(overall_liks/sumlik_total);
+  ret[0]= wrap(overall_liks);
+  ret[1]= wrap(pow_vec/sumlik_total);
+  ret[2]= wrap(pred_mat_overall);
+  ret[3]= wrap(pred_cats);
+  ret[4]= wrap(accuracies);
+  ret[5]= beta_par;
+  return(ret);
+
+}else{
+  arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+
+  List ret(4);
+  //ret[0]= wrap(overall_liks/sumlik_total);
+  ret[0]= wrap(overall_liks);
+  ret[1]= wrap(pow_vec/sumlik_total);
+  ret[2]= wrap(pred_mat_overall);
+  ret[3]= wrap(pred_cats);
+  return(ret);
+
+}
+
+
+
+
+}
+
+
+
+//###########################################################################################################################//
 
 

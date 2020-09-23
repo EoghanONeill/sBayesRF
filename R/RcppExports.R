@@ -33,6 +33,10 @@ get_test_prob_overall <- function(weights, num_cats, testdata, treetable_list) {
     .Call(`_sBayesRF_get_test_prob_overall`, weights, num_cats, testdata, treetable_list)
 }
 
+secondKindStirlingNumber <- function(n, k) {
+    .Call(`_sBayesRF_secondKindStirlingNumber`, n, k)
+}
+
 #' @title Draw a set of trees from the prior.
 #' @export
 draw_trees <- function(lambda, num_trees, seed, num_split_vars, num_cats) {
@@ -113,8 +117,12 @@ sBayesRF_onefunc_parallel <- function(lambda, num_trees, seed, num_cats, y, orig
 #' @param ncores The number of cores to be used in parallelization.
 #' @return A matrix of probabilities with the number of rows equl to the number of test observations and the number of columns equal to the number of possible outcome categories.
 #' @export
-sBayesRF_more_priors_cpp <- function(lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores, nu, a, valid_trees, tree_prior, imp_sampler, alpha_BART, beta_BART, s_t_hyperprior, p_s_t, a_s_t, b_s_t, lambda_poisson, in_samp_preds, save_tree_tables) {
-    .Call(`_sBayesRF_sBayesRF_more_priors_cpp`, lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores, nu, a, valid_trees, tree_prior, imp_sampler, alpha_BART, beta_BART, s_t_hyperprior, p_s_t, a_s_t, b_s_t, lambda_poisson, in_samp_preds, save_tree_tables)
+sBayesRF_more_priors_cpp <- function(lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores, valid_trees, tree_prior, imp_sampler, alpha_BART, beta_BART, s_t_hyperprior, p_s_t, a_s_t, b_s_t, lambda_poisson, in_samp_preds, save_tree_tables, find_power) {
+    .Call(`_sBayesRF_sBayesRF_more_priors_cpp`, lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores, valid_trees, tree_prior, imp_sampler, alpha_BART, beta_BART, s_t_hyperprior, p_s_t, a_s_t, b_s_t, lambda_poisson, in_samp_preds, save_tree_tables, find_power)
+}
+
+pred_sBF <- function(tree_table_list, orig_weights, original_datamat, test_datamat, orig_logliks, y_original, beta_par, num_obs, num_test_obs, num_cats, find_power, ncores) {
+    .Call(`_sBayesRF_pred_sBF`, tree_table_list, orig_weights, original_datamat, test_datamat, orig_logliks, y_original, beta_par, num_obs, num_test_obs, num_cats, find_power, ncores)
 }
 
 get_imp_vars <- function(split_vars, num_col, current_vars) {

@@ -38,14 +38,14 @@
 #' seed1 <- 42
 #' ncores <- 1
 #'
-#' sBayesRF_parallel(lambda, Num_trees,
+#' sBayesRF_old(lambda, Num_trees,
 #'                   seed1, Num_cats,
 #'                   y, data_original1,
 #'                   alpha_parameters, beta_par,
 #'                   data_test1,ncores)
 #' @export
 
-sBayesRF_parallel <- function(lambda=0.45,num_trees=1000,
+sBayesRF_old <- function(lambda=0.45,num_trees=1000,
                                         seed, num_cats,
                                         y, original_datamat,
                                         alpha_parameters=rep(1,num_cats), beta_par=1,

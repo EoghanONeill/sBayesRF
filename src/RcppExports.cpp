@@ -99,6 +99,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// secondKindStirlingNumber
+double secondKindStirlingNumber(int n, int k);
+RcppExport SEXP _sBayesRF_secondKindStirlingNumber(SEXP nSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(secondKindStirlingNumber(n, k));
+    return rcpp_result_gen;
+END_RCPP
+}
 // draw_trees
 List draw_trees(double lambda, int num_trees, int seed, int num_split_vars, int num_cats);
 RcppExport SEXP _sBayesRF_draw_trees(SEXP lambdaSEXP, SEXP num_treesSEXP, SEXP seedSEXP, SEXP num_split_varsSEXP, SEXP num_catsSEXP) {
@@ -192,8 +204,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // sBayesRF_more_priors_cpp
-List sBayesRF_more_priors_cpp(double lambda, int num_trees, int seed, int num_cats, NumericVector y, NumericMatrix original_datamat, NumericVector alpha_parameters, double beta_par, NumericMatrix test_datamat, int ncores, double nu, double a, int valid_trees, int tree_prior, int imp_sampler, double alpha_BART, double beta_BART, int s_t_hyperprior, double p_s_t, double a_s_t, double b_s_t, double lambda_poisson, int in_samp_preds, int save_tree_tables);
-RcppExport SEXP _sBayesRF_sBayesRF_more_priors_cpp(SEXP lambdaSEXP, SEXP num_treesSEXP, SEXP seedSEXP, SEXP num_catsSEXP, SEXP ySEXP, SEXP original_datamatSEXP, SEXP alpha_parametersSEXP, SEXP beta_parSEXP, SEXP test_datamatSEXP, SEXP ncoresSEXP, SEXP nuSEXP, SEXP aSEXP, SEXP valid_treesSEXP, SEXP tree_priorSEXP, SEXP imp_samplerSEXP, SEXP alpha_BARTSEXP, SEXP beta_BARTSEXP, SEXP s_t_hyperpriorSEXP, SEXP p_s_tSEXP, SEXP a_s_tSEXP, SEXP b_s_tSEXP, SEXP lambda_poissonSEXP, SEXP in_samp_predsSEXP, SEXP save_tree_tablesSEXP) {
+List sBayesRF_more_priors_cpp(double lambda, int num_trees, int seed, int num_cats, NumericVector y, NumericMatrix original_datamat, NumericVector alpha_parameters, double beta_par, NumericMatrix test_datamat, int ncores, int valid_trees, int tree_prior, int imp_sampler, double alpha_BART, double beta_BART, int s_t_hyperprior, double p_s_t, double a_s_t, double b_s_t, double lambda_poisson, int in_samp_preds, int save_tree_tables, int find_power);
+RcppExport SEXP _sBayesRF_sBayesRF_more_priors_cpp(SEXP lambdaSEXP, SEXP num_treesSEXP, SEXP seedSEXP, SEXP num_catsSEXP, SEXP ySEXP, SEXP original_datamatSEXP, SEXP alpha_parametersSEXP, SEXP beta_parSEXP, SEXP test_datamatSEXP, SEXP ncoresSEXP, SEXP valid_treesSEXP, SEXP tree_priorSEXP, SEXP imp_samplerSEXP, SEXP alpha_BARTSEXP, SEXP beta_BARTSEXP, SEXP s_t_hyperpriorSEXP, SEXP p_s_tSEXP, SEXP a_s_tSEXP, SEXP b_s_tSEXP, SEXP lambda_poissonSEXP, SEXP in_samp_predsSEXP, SEXP save_tree_tablesSEXP, SEXP find_powerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -207,8 +219,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type beta_par(beta_parSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type test_datamat(test_datamatSEXP);
     Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
-    Rcpp::traits::input_parameter< double >::type a(aSEXP);
     Rcpp::traits::input_parameter< int >::type valid_trees(valid_treesSEXP);
     Rcpp::traits::input_parameter< int >::type tree_prior(tree_priorSEXP);
     Rcpp::traits::input_parameter< int >::type imp_sampler(imp_samplerSEXP);
@@ -221,7 +231,30 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type lambda_poisson(lambda_poissonSEXP);
     Rcpp::traits::input_parameter< int >::type in_samp_preds(in_samp_predsSEXP);
     Rcpp::traits::input_parameter< int >::type save_tree_tables(save_tree_tablesSEXP);
-    rcpp_result_gen = Rcpp::wrap(sBayesRF_more_priors_cpp(lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores, nu, a, valid_trees, tree_prior, imp_sampler, alpha_BART, beta_BART, s_t_hyperprior, p_s_t, a_s_t, b_s_t, lambda_poisson, in_samp_preds, save_tree_tables));
+    Rcpp::traits::input_parameter< int >::type find_power(find_powerSEXP);
+    rcpp_result_gen = Rcpp::wrap(sBayesRF_more_priors_cpp(lambda, num_trees, seed, num_cats, y, original_datamat, alpha_parameters, beta_par, test_datamat, ncores, valid_trees, tree_prior, imp_sampler, alpha_BART, beta_BART, s_t_hyperprior, p_s_t, a_s_t, b_s_t, lambda_poisson, in_samp_preds, save_tree_tables, find_power));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pred_sBF
+List pred_sBF(List tree_table_list, NumericVector orig_weights, NumericMatrix original_datamat, NumericMatrix test_datamat, NumericVector orig_logliks, NumericVector y_original, double beta_par, int num_obs, int num_test_obs, int num_cats, int find_power, int ncores);
+RcppExport SEXP _sBayesRF_pred_sBF(SEXP tree_table_listSEXP, SEXP orig_weightsSEXP, SEXP original_datamatSEXP, SEXP test_datamatSEXP, SEXP orig_logliksSEXP, SEXP y_originalSEXP, SEXP beta_parSEXP, SEXP num_obsSEXP, SEXP num_test_obsSEXP, SEXP num_catsSEXP, SEXP find_powerSEXP, SEXP ncoresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type tree_table_list(tree_table_listSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type orig_weights(orig_weightsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type original_datamat(original_datamatSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type test_datamat(test_datamatSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type orig_logliks(orig_logliksSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y_original(y_originalSEXP);
+    Rcpp::traits::input_parameter< double >::type beta_par(beta_parSEXP);
+    Rcpp::traits::input_parameter< int >::type num_obs(num_obsSEXP);
+    Rcpp::traits::input_parameter< int >::type num_test_obs(num_test_obsSEXP);
+    Rcpp::traits::input_parameter< int >::type num_cats(num_catsSEXP);
+    Rcpp::traits::input_parameter< int >::type find_power(find_powerSEXP);
+    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(pred_sBF(tree_table_list, orig_weights, original_datamat, test_datamat, orig_logliks, y_original, beta_par, num_obs, num_test_obs, num_cats, find_power, ncores));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -260,12 +293,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_sBayesRF_get_treelist", (DL_FUNC) &_sBayesRF_get_treelist, 6},
     {"_sBayesRF_get_test_probs", (DL_FUNC) &_sBayesRF_get_test_probs, 4},
     {"_sBayesRF_get_test_prob_overall", (DL_FUNC) &_sBayesRF_get_test_prob_overall, 4},
+    {"_sBayesRF_secondKindStirlingNumber", (DL_FUNC) &_sBayesRF_secondKindStirlingNumber, 2},
     {"_sBayesRF_draw_trees", (DL_FUNC) &_sBayesRF_draw_trees, 5},
     {"_sBayesRF_sBayesRF", (DL_FUNC) &_sBayesRF_sBayesRF, 9},
     {"_sBayesRF_sBayesRF_onefunc", (DL_FUNC) &_sBayesRF_sBayesRF_onefunc, 9},
     {"_sBayesRF_sBayesRF_onefunc_arma", (DL_FUNC) &_sBayesRF_sBayesRF_onefunc_arma, 9},
     {"_sBayesRF_sBayesRF_onefunc_parallel", (DL_FUNC) &_sBayesRF_sBayesRF_onefunc_parallel, 10},
-    {"_sBayesRF_sBayesRF_more_priors_cpp", (DL_FUNC) &_sBayesRF_sBayesRF_more_priors_cpp, 24},
+    {"_sBayesRF_sBayesRF_more_priors_cpp", (DL_FUNC) &_sBayesRF_sBayesRF_more_priors_cpp, 23},
+    {"_sBayesRF_pred_sBF", (DL_FUNC) &_sBayesRF_pred_sBF, 12},
     {"_sBayesRF_get_imp_vars", (DL_FUNC) &_sBayesRF_get_imp_vars, 3},
     {"_sBayesRF_get_weighted_var_imp", (DL_FUNC) &_sBayesRF_get_weighted_var_imp, 3},
     {NULL, NULL, 0}

@@ -15,8 +15,6 @@ sBayesRF_more_priors_cpp(
   beta_par,
   test_datamat,
   ncores,
-  nu,
-  a,
   valid_trees,
   tree_prior,
   imp_sampler,
@@ -28,7 +26,8 @@ sBayesRF_more_priors_cpp(
   b_s_t,
   lambda_poisson,
   in_samp_preds,
-  save_tree_tables
+  save_tree_tables,
+  find_power
 )
 }
 \arguments{
