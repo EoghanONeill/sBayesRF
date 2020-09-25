@@ -5,8 +5,9 @@
 #' @param object bartBMA object obtained from function bartis
 #' @param newdata Test data for which predictions are to be produced. Default = NULL. If NULL, then produces prediction intervals for training data if no test data was used in producing the bartBMA object, or produces prediction intervals for the original test data if test data was used in producing the bartBMA object.
 #' @param num_cores Number of cores used in parallel.
+#' @param previous_power If equal to 1, use the power inputted or found for the trained object.
 #' @param find_power If equal to 1, instead of using beta_par, the power for the likelihood weight will be found by searching over n values from 1/n, 2/n,..., to 1, where n is the training sample size. The criterion is insample accuracy (proportion of correct predictions in-sample).
-#' @param beta_par The power to which the likelihood is to be raised. For BMA, set beta_par=1. Recommended value is between 0 and 1.
+#' @param beta_par The power to which the likelihood is to be raised. For BMA, set beta_par=1. Recommended value is between 0 and 1. This parameter does nothing if previous_power = 1 or find_power = 1.
 #' @export
 #' @return The output is a list of length 2:
 #' \item{PI}{A 3 by n matrix, where n is the number of observations. The first row gives the l_quant*100 quantiles. The second row gives the medians. The third row gives the u_quant*100 quantiles.}

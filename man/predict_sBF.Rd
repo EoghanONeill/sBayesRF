@@ -20,9 +20,11 @@ predict_sBF(
 
 \item{num_cores}{Number of cores used in parallel.}
 
+\item{previous_power}{If equal to 1, use the power inputted or found for the trained object.}
+
 \item{find_power}{If equal to 1, instead of using beta_par, the power for the likelihood weight will be found by searching over n values from 1/n, 2/n,..., to 1, where n is the training sample size. The criterion is insample accuracy (proportion of correct predictions in-sample).}
 
-\item{beta_par}{The power to which the likelihood is to be raised. For BMA, set beta_par=1. Recommended value is between 0 and 1.}
+\item{beta_par}{The power to which the likelihood is to be raised. For BMA, set beta_par=1. Recommended value is between 0 and 1. This parameter does nothing if previous_power = 1 or find_power = 1.}
 }
 \value{
 The output is a list of length 2:

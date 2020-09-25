@@ -126,6 +126,18 @@ sBayesRF_func <- function(lambda=0.45,
   if(nrow(test_datamat) >0){
     if((ncol(test_datamat)!=ncol(original_datamat))) stop("input x.test must have the same number of columns as x.train")
   }
+
+
+
+
+  #any(sort(unique(Y_all_training)) != min(Y_all_training):(min(Y_all_training)+length(unique(Y_all_training))-1) )
+  #any(sort(unique(Y_all_training))!= min(Y_all_training):(min(Y_all_training)+length(unique(Y_all_training))-1) )
+
+if(any(sort(unique(y))!= min(y):(min(y)+length(unique(y))-1) ) ){
+  stop("Possible classes must be consecutive integers")
+}
+
+
   sBRFcall=sBayesRF_more_priors_cpp(lambda,
                                     num_trees,
                                     seed,

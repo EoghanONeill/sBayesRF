@@ -4270,6 +4270,8 @@ List sBayesRF_more_priors_cpp(double lambda,
   arma::vec orig_y_arma= as<arma::vec>(y);
   arma::vec alpha_pars_arma= as<arma::vec>(alpha_parameters);
 
+  int min_y = arma::min(orig_y_arma);
+
   int num_obs = data_arma.n_rows;
   //int num_test_obs = testdata_arma.n_rows;
 
@@ -5669,7 +5671,7 @@ List sBayesRF_more_priors_cpp(double lambda,
 
       for(int k=0; k<num_cats; k++){
         //assuming categories of y are from 1 to num_cats
-        arma::uvec cat_inds= arma::find(orig_y_arma==k+1);
+        arma::uvec cat_inds= arma::find(orig_y_arma==k+min_y);
         double m_plus_alph=cat_inds.n_elem +alpha_pars_arma(k);
         tree_table1(0,5+k)= m_plus_alph/denom_temp ;
 
@@ -5835,7 +5837,7 @@ List sBayesRF_more_priors_cpp(double lambda,
 
         for(int k=0; k<num_cats; k++){
           //assuming categories of y are from 1 to num_cats
-          arma::uvec cat_inds= arma::find(orig_y_arma(pred_indices)==k+1);
+          arma::uvec cat_inds= arma::find(orig_y_arma(pred_indices)==k+min_y);
           double m_plus_alph=cat_inds.n_elem +alpha_pars_arma(k);
 
           tree_table1(curr_term-1,5+k)= m_plus_alph/denom_temp ;
@@ -6256,12 +6258,12 @@ if(find_power==1){
     //pred_mat_op_curve_insamp = pred_mat_op_curve_insamp*(1/sumlik_total_temp);
     // Rcout << "pred_mat_op_curve_insamp == " << pred_mat_op_curve_insamp << ".\n";
 
-    arma::uvec pred_cats = arma::index_max(pred_mat_op_curve_insamp,1) ;
+    arma::uvec pred_cats = arma::index_max(pred_mat_op_curve_insamp,1)  +  arma::min(orig_y_arma);
 
     // Rcout << "n_OC == " << n_OC << ".\n";
     // Rcout << "pred_cats = \n" << pred_cats << ".\n";
 
-    int num_equal= arma::sum(orig_y_arma-1 == pred_cats);
+    int num_equal= arma::sum(orig_y_arma == pred_cats);
     // Rcout << "num_equal = \n" << num_equal << ".\n";
 
     accuracies(n_OC) = double(num_equal)/num_obs;
@@ -6421,7 +6423,7 @@ if(find_power==1){
   }
 
   if(is_test_data==1 && in_samp_preds==0){
-    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) +  arma::min(orig_y_arma);
     if(save_tree_tables==1){
       List ret(7);
       //ret[0]= wrap(overall_liks/sumlik_total);
@@ -6450,7 +6452,7 @@ if(find_power==1){
   }
 
   if(is_test_data==0 && in_samp_preds==1){
-    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
+    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1)  +  arma::min(orig_y_arma);
     if(save_tree_tables==1){
       List ret(7);
       //ret[0]= wrap(overall_liks/sumlik_total);
@@ -6477,8 +6479,8 @@ if(find_power==1){
   }
 
   if(is_test_data==1 && in_samp_preds==1){
-    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
-    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
+    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1)  +  arma::min(orig_y_arma);
+    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1)  +  arma::min(orig_y_arma);
     if(save_tree_tables==1){
       List ret(9);
       //ret[0]= wrap(overall_liks/sumlik_total);
@@ -6534,7 +6536,7 @@ if(find_power==1){
   }
 
   if(is_test_data==1 && in_samp_preds==0){
-    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1)  +  arma::min(orig_y_arma);
     if(save_tree_tables==1){
       List ret(5);
       //ret[0]= wrap(overall_liks/sumlik_total);
@@ -6560,7 +6562,7 @@ if(find_power==1){
   }
 
   if(is_test_data==0 && in_samp_preds==1){
-    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
+    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1)  +  arma::min(orig_y_arma);
     if(save_tree_tables==1){
       List ret(5);
       //ret[0]= wrap(overall_liks/sumlik_total);
@@ -6585,8 +6587,8 @@ if(find_power==1){
   }
 
   if(is_test_data==1 && in_samp_preds==1){
-    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
-    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1) ;
+    arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) +  arma::min(orig_y_arma);
+    arma::uvec pred_cats_insamp = arma::index_max(pred_mat_overall_insamp,1)  +  arma::min(orig_y_arma);
     if(save_tree_tables==1){
       List ret(7);
       //ret[0]= wrap(overall_liks/sumlik_total);
@@ -7061,12 +7063,12 @@ if(find_power==1){
 //pred_mat_op_curve_insamp = pred_mat_op_curve_insamp*(1/sumlik_total_temp);
 // Rcout << "pred_mat_op_curve_insamp == " << pred_mat_op_curve_insamp << ".\n";
 
-arma::uvec pred_cats = arma::index_max(pred_mat_op_curve_insamp,1) ;
+arma::uvec pred_cats = arma::index_max(pred_mat_op_curve_insamp,1)  +  arma::min(orig_y_arma);
 
 // Rcout << "n_OC == " << n_OC << ".\n";
 // Rcout << "pred_cats = \n" << pred_cats << ".\n";
 
-int num_equal= arma::sum(orig_y_arma-1 == pred_cats);
+int num_equal= arma::sum(orig_y_arma == pred_cats);
 // Rcout << "num_equal = \n" << num_equal << ".\n";
 
 accuracies(n_OC) = double(num_equal)/num_obs;
@@ -7117,7 +7119,7 @@ if(is_test_data==1){
 
 
 if(find_power==1){
-  arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+  arma::uvec pred_cats = arma::index_max(pred_mat_overall,1)  +  arma::min(orig_y_arma);
 
   List ret(6);
   //ret[0]= wrap(overall_liks/sumlik_total);
@@ -7130,7 +7132,7 @@ if(find_power==1){
   return(ret);
 
 }else{
-  arma::uvec pred_cats = arma::index_max(pred_mat_overall,1) ;
+  arma::uvec pred_cats = arma::index_max(pred_mat_overall,1)  +  arma::min(orig_y_arma);
 
   List ret(4);
   //ret[0]= wrap(overall_liks/sumlik_total);
