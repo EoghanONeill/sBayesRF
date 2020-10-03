@@ -7,24 +7,26 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 NumericVector get_imp_vars(NumericVector split_vars,int num_col,NumericVector current_vars){
 
-  NumericVector vars_chosen=sort_unique(split_vars);
-
-  if(vars_chosen[0]==0){
-    vars_chosen.erase(0);
-  }
-  if(vars_chosen.size()!=0){
+//  NumericVector vars_chosen=sort_unique(split_vars);
+//
+//   if(vars_chosen[0]==0){
+//     vars_chosen.erase(0);
+//   }
+//   if(vars_chosen.size()!=0){
     for(int i=0;i<split_vars.size();i++){
       //if(tree_table[i]!=0){
       //Rcout << "split_vars[i] = " << split_vars[i] << ".\n";
       //Rcout << "current_vars[split_vars[i]-1] = " << current_vars[split_vars[i]-1] << ".\n";
 
-      if(split_vars[i]==-1){}else{
+      if( (split_vars[i]==-1) || (split_vars[i]==0) ){}else{
         current_vars[split_vars[i]-1]+=1;
       }
       //  }
 
     }
-  }
+
+//  }
+
   return(current_vars);
 }
 //#######################################################################################################################//
